@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import {storage} from '@/lib/telegram';
 import {
   FinishReason,
   type GenerateContentConfig,
@@ -20,26 +21,29 @@ const API_ROOT = 'https://generativelanguage.googleapis.com/v1beta';
  * defence is resolveModels() below, which asks the user's own key what it can
  * actually run. These names are just a life raft.
  */
-const FALLBACK_SPEC_MODEL = 'gemini-3.7-flash';
-const FALLBACK_CODE_MODEL = 'gemini-3.7-flash';
+const FALLBACK_SPEC_MODEL = 'gemini-3.6-flash';
+const FALLBACK_CODE_MODEL = 'gemini-3.6-flash';
 
-export class QuotaError extends Error {}
-export class AuthError extends Error {}
-export class ModelError extends Error {}
-/** Google's capacity problem, not ours: worth simply waiting out. */
-export class OverloadedError extends Error {}
-
-/** Backoff before each retry of an overloaded model. */
-const RETRY_DELAYS_MS = [3000, 8000, 20000];
+/**
+ * Waits between whole passes over the model list.
+ *
+ * The first pass has no delay at all. Measured against a real key, the newest
+ * model returned 503 while the one directly behind it answered immediately --
+ * so asking every model once beats waiting half a minute on the busiest one.
+ */
+const ROUND_DELAYS_MS = [0, 5000, 15000];
 
 /** Enough alternates to outlast a busy spell, few enough to bound the wait. */
 const MAX_CHAIN_LENGTH = 4;
 
-export interface RetryInfo {
-  attempt: number;
-  of: number;
-  waitMs: number;
-}
+/** Remembers the model that last worked, so the next run starts there. */
+const PREFERRED_MODEL_KEY = 'preferred_model';
+
+export class QuotaError extends Error {}
+export class AuthError extends Error {}
+export class ModelError extends Error {}
+/** Google's capacity problem, not ours: worth asking a different model. */
+export class OverloadedError extends Error {}
 
 export interface ModelChoice {
   /** Watches the video and drafts the plan. */
@@ -47,11 +51,11 @@ export interface ModelChoice {
   /** Writes the app. */
   code: string;
   /**
-   * Distinct models to walk when one is busy or out of quota, newest first.
+   * Distinct models to walk when one is busy or out of quota, best first.
    *
-   * The newest model is also the most contended, so "try again on the
-   * fallback" is worthless if the fallback resolves to the same name. These
-   * are guaranteed to be different models.
+   * The newest model is also the most contended, so "try the fallback" is
+   * worthless if the fallback resolves to the same name. These are guaranteed
+   * to be different models.
    */
   chain: string[];
 }
@@ -63,33 +67,6 @@ interface GenerateOptions {
   videoUrl?: string;
   temperature?: number;
   config?: GenerateContentConfig;
-  /** Called before each backoff wait, so the UI can explain the pause. */
-  onRetry?: (info: RetryInfo) => void;
-}
-
-/**
- * Retry a call that failed only because the model was busy.
- *
- * An overloaded model is the one failure here that reliably fixes itself, so
- * dead-ending the user on the first 503 throws away a generation they were
- * about to get for free.
- */
-async function withRetry<T>(
-  run: () => Promise<T>,
-  onRetry?: (info: RetryInfo) => void,
-): Promise<T> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await run();
-    } catch (error) {
-      const isLast = attempt >= RETRY_DELAYS_MS.length;
-      if (!(error instanceof OverloadedError) || isLast) throw error;
-
-      const waitMs = RETRY_DELAYS_MS[attempt];
-      onRetry?.({attempt: attempt + 1, of: RETRY_DELAYS_MS.length, waitMs});
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
-    }
-  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -98,7 +75,7 @@ async function withRetry<T>(
 
 /** Model families that cannot write a web app from a text prompt. */
 const NOT_GENERAL_PURPOSE =
-  /embedding|aqa|imagen|image|tts|audio|live|omni|veo|learnlm|gemma/i;
+  /embedding|aqa|imagen|image|tts|audio|live|omni|veo|learnlm|gemma|customtools/i;
 
 interface RankedModel {
   id: string;
@@ -116,7 +93,13 @@ function rank(id: string): RankedModel | null {
 
   // "3.7" sorts above "3.6", and both above "2.5".
   const version = Number(match[1]) + (match[2] ? Number(match[2]) / 100 : 0);
-  const tier = /pro/.test(id) ? 3 : /lite/.test(id) ? 1 : /flash/.test(id) ? 2 : 0;
+  const tier = /pro/.test(id)
+    ? 3
+    : /lite/.test(id)
+      ? 1
+      : /flash/.test(id)
+        ? 2
+        : 0;
   if (tier === 0) return null;
 
   return {id, version, tier, preview: /preview|exp/.test(id)};
@@ -152,41 +135,71 @@ export async function listUsableModels(apiKey: string): Promise<RankedModel[]> {
 }
 
 let cachedChoice: ModelChoice | null = null;
+let preferredModel: string | null = null;
 
 /** Forget the resolved models, so the next call re-reads the live list. */
 export function resetModelCache() {
   cachedChoice = null;
 }
 
+function moveToFront(chain: string[], id: string): string[] {
+  if (!chain.includes(id)) return chain;
+  return [id, ...chain.filter((entry) => entry !== id)];
+}
+
 /**
- * Pick the best models this particular key can use.
+ * Record the model that just worked.
+ *
+ * Contention is not evenly spread: one key's newest model can be busy all day
+ * while the previous release sits idle. Starting from whatever last succeeded
+ * skips paying that discovery cost on every later run.
+ */
+export function rememberWorkingModel(id: string) {
+  if (preferredModel === id) return;
+  preferredModel = id;
+  void storage.set(PREFERRED_MODEL_KEY, id);
+  if (cachedChoice) {
+    cachedChoice = {...cachedChoice, chain: moveToFront(cachedChoice.chain, id)};
+  }
+}
+
+/**
+ * Pick the models this key should try, best first.
  *
  * Version outranks tier. Preferring Pro unconditionally would reach past a
  * current Flash for a Pro two generations old -- exactly the retired model
- * that broke this app. Because the sort already places Pro ahead of Flash at
- * equal version, taking the top entry gets the newest Pro when one exists and
- * the newest Flash otherwise.
+ * that broke this app once.
  */
 export async function resolveModels(apiKey: string): Promise<ModelChoice> {
   if (cachedChoice) return cachedChoice;
+
+  if (preferredModel === null) {
+    preferredModel = await storage.get(PREFERRED_MODEL_KEY);
+  }
 
   try {
     const models = await listUsableModels(apiKey);
     const flash = models.filter((m) => m.tier === 2);
     const capable = models.filter((m) => m.tier >= 2);
     // A key limited to flash-lite should still work, badly, rather than fail.
-    const spec = flash[0] ?? capable[0] ?? models[0];
-    const code = capable[0] ?? models[0];
+    const bestSpec = flash[0] ?? capable[0] ?? models[0];
+    const bestCode = capable[0] ?? models[0];
 
     // Capable models first, then lite ones, which are far less contended and
     // still beat showing the user nothing.
-    const chain = [...new Set([...capable, ...models].map((m) => m.id))].slice(
-      0,
-      MAX_CHAIN_LENGTH,
-    );
+    let chain = [...new Set([...capable, ...models].map((m) => m.id))];
+    if (preferredModel) chain = moveToFront(chain, preferredModel);
+    chain = chain.slice(0, MAX_CHAIN_LENGTH);
 
-    if (spec && code && chain.length) {
-      cachedChoice = {spec: spec.id, code: code.id, chain};
+    if (bestSpec && bestCode && chain.length) {
+      // A model already proven to work on this key outranks a theoretically
+      // better one that may be refusing requests.
+      const proven = preferredModel && chain[0] === preferredModel;
+      cachedChoice = {
+        spec: proven ? chain[0] : bestSpec.id,
+        code: proven ? chain[0] : bestCode.id,
+        chain,
+      };
       console.info('Resolved Gemini models:', cachedChoice);
       return cachedChoice;
     }
@@ -202,33 +215,62 @@ export async function resolveModels(apiKey: string): Promise<ModelChoice> {
   return cachedChoice;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Running a call across several models                                       */
+/* -------------------------------------------------------------------------- */
+
+export interface AcrossModelsHooks {
+  /** A model failed and another is about to be tried. */
+  onSwitch?: (nextModel: string, previous: Error) => void;
+  /** Every model refused; pausing before another pass. */
+  onWait?: (waitMs: number, round: number, of: number) => void;
+}
+
+function isRecoverable(error: unknown) {
+  return (
+    error instanceof OverloadedError ||
+    error instanceof QuotaError ||
+    error instanceof ModelError
+  );
+}
+
 /**
- * Run `attempt` against each model in turn until one of them works.
+ * Try `attempt` on each model, in rounds.
  *
- * Busy, out-of-quota and retired models are all "ask someone else" problems.
- * Anything else -- a bad key, a blocked prompt -- fails immediately, because
- * no other model would answer differently.
+ * The first round runs straight through the list with no delay, because a
+ * different model is the fastest cure for a busy one. Only once every model
+ * has refused does it start waiting between passes.
+ *
+ * Anything that is not busy, spent or missing -- a bad key, a blocked prompt
+ * -- fails immediately, because no other model would answer differently.
  */
 export async function acrossModels<T>(
   chain: string[],
   attempt: (modelName: string) => Promise<T>,
-  onSwitch?: (nextModel: string, previous: Error) => void,
+  hooks: AcrossModelsHooks = {},
 ): Promise<T> {
   let lastError: Error = new Error('No usable Gemini model found');
 
-  for (let i = 0; i < chain.length; i++) {
-    try {
-      return await attempt(chain[i]);
-    } catch (error) {
-      const recoverable =
-        error instanceof OverloadedError ||
-        error instanceof QuotaError ||
-        error instanceof ModelError;
-      if (!recoverable) throw error;
+  for (let round = 0; round < ROUND_DELAYS_MS.length; round++) {
+    const wait = ROUND_DELAYS_MS[round];
+    if (wait > 0) {
+      hooks.onWait?.(wait, round, ROUND_DELAYS_MS.length - 1);
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
 
-      lastError = error as Error;
-      const next = chain[i + 1];
-      if (next) onSwitch?.(next, lastError);
+    for (let i = 0; i < chain.length; i++) {
+      const model = chain[i];
+      try {
+        const result = await attempt(model);
+        rememberWorkingModel(model);
+        return result;
+      } catch (error) {
+        if (!isRecoverable(error)) throw error;
+        lastError = error as Error;
+
+        const next = chain[i + 1];
+        if (next) hooks.onSwitch?.(next, lastError);
+      }
     }
   }
 
@@ -258,8 +300,8 @@ function readableMessage(raw: string): string {
 }
 
 /**
- * Turn whatever the SDK threw into something the UI can act on, so a spent
- * free quota reads as "retry smaller" rather than a raw stack trace.
+ * Turn whatever the SDK threw into something the caller can act on, so a busy
+ * model reads as "ask someone else" rather than a raw stack trace.
  */
 function classify(error: unknown): Error {
   const raw =
@@ -269,6 +311,13 @@ function classify(error: unknown): Error {
 
   if (status === 429 || /quota|rate limit|RESOURCE_EXHAUSTED/i.test(raw)) {
     return new QuotaError(message);
+  }
+  if (
+    status === 503 ||
+    status === 500 ||
+    /overloaded|high demand|UNAVAILABLE|try again later|temporarily/i.test(raw)
+  ) {
+    return new OverloadedError(message);
   }
   if (
     status === 404 ||
@@ -322,20 +371,18 @@ export async function generateText(options: GenerateOptions): Promise<string> {
 
   const ai = new GoogleGenAI({apiKey});
 
-  return withRetry(async () => {
-    try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
-        config: {temperature, ...options.config},
-      });
-      checkCandidate(response);
-      return response.text ?? '';
-    } catch (error) {
-      console.error('Gemini call failed:', error);
-      throw classify(error);
-    }
-  }, options.onRetry);
+  try {
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
+      config: {temperature, ...options.config},
+    });
+    checkCandidate(response);
+    return response.text ?? '';
+  } catch (error) {
+    console.error(`Gemini call failed on ${modelName}:`, error);
+    throw classify(error);
+  }
 }
 
 /**
@@ -358,36 +405,34 @@ export async function generateTextStream(
 
   const ai = new GoogleGenAI({apiKey});
 
-  return withRetry(async () => {
-    // Each attempt starts from nothing, so a stream that dies halfway cannot
-    // leave half a document glued to the front of the retry.
-    let accumulated = '';
-    onChunk?.('');
+  // Each attempt starts from nothing, so a stream that dies halfway cannot
+  // leave half a document glued to the front of the next model's output.
+  let accumulated = '';
+  onChunk?.('');
 
-    try {
-      const stream = await ai.models.generateContentStream({
-        model: modelName,
-        contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
-        config: {temperature, ...options.config},
-      });
+  try {
+    const stream = await ai.models.generateContentStream({
+      model: modelName,
+      contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
+      config: {temperature, ...options.config},
+    });
 
-      let last: Parameters<typeof checkCandidate>[0] | undefined;
-      for await (const chunk of stream) {
-        last = chunk;
-        if (chunk.text) {
-          accumulated += chunk.text;
-          onChunk?.(accumulated);
-        }
+    let last: Parameters<typeof checkCandidate>[0] | undefined;
+    for await (const chunk of stream) {
+      last = chunk;
+      if (chunk.text) {
+        accumulated += chunk.text;
+        onChunk?.(accumulated);
       }
-
-      if (last) checkCandidate(last);
-      if (!accumulated) throw new Error('The model returned no output.');
-      return accumulated;
-    } catch (error) {
-      console.error('Gemini stream failed:', error);
-      throw classify(error);
     }
-  }, options.onRetry);
+
+    if (last) checkCandidate(last);
+    if (!accumulated) throw new Error('The model returned no output.');
+    return accumulated;
+  } catch (error) {
+    console.error(`Gemini stream failed on ${modelName}:`, error);
+    throw classify(error);
+  }
 }
 
 /**

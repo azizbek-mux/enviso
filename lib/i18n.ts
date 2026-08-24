@@ -45,6 +45,7 @@ const en = {
   quotaFallback: 'Free quota reached on the bigger model, retrying a faster one',
   busyRetry: 'Google is busy right now. Waiting, then trying again',
   switchingModel: 'That model is busy. Switching to another one',
+  allBusy: 'All models are busy. Trying again in',
   busyGaveUp:
     'Google is overloaded at the moment. This is temporary - wait a few minutes and press Try again.',
 
@@ -111,6 +112,7 @@ const uz: typeof en = {
     'Katta model limiti tugadi, tezroq model bilan qayta urinilmoqda',
   busyRetry: 'Google hozir band. Kutib, qayta urinilmoqda',
   switchingModel: 'Bu model band. Boshqasiga oʻtilmoqda',
+  allBusy: 'Barcha modellar band. Qayta urinish:',
   busyGaveUp:
     'Google serverlari hozir juda band. Bu vaqtinchalik - bir necha daqiqa kutib, "Qayta urinish" tugmasini bosing.',
 

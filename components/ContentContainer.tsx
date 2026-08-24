@@ -95,14 +95,17 @@ export default forwardRef(function ContentContainer(
             modelName,
             prompt: SPEC_FROM_VIDEO_PROMPT,
             videoUrl,
-            onRetry: (info) =>
-              setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
             config: {
               responseMimeType: 'application/json',
               responseSchema: SPEC_RESPONSE_SCHEMA as never,
             },
           }),
-        (nextModel) => setNotice(`${t.switchingModel}: ${nextModel}`),
+        {
+          onSwitch: (nextModel) =>
+            setNotice(`${t.switchingModel}: ${nextModel}`),
+          onWait: (waitMs) =>
+            setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
+        },
       );
 
       const parsed = parseJSON(response);
@@ -111,7 +114,7 @@ export default forwardRef(function ContentContainer(
       }
       return parsed.spec as string;
     },
-    [apiKey, t.busyRetry, t.switchingModel],
+    [apiKey, t.switchingModel, t.allBusy],
   );
 
   const generateCodeFromSpec = useCallback(
@@ -134,18 +137,20 @@ export default forwardRef(function ContentContainer(
             modelName,
             prompt,
             onChunk: setStreamed,
-            onRetry: (info) =>
-              setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
           }),
-        (nextModel) => {
-          setStreamed('');
-          setNotice(`${t.switchingModel}: ${nextModel}`);
+        {
+          onSwitch: (nextModel) => {
+            setStreamed('');
+            setNotice(`${t.switchingModel}: ${nextModel}`);
+          },
+          onWait: (waitMs) =>
+            setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
         },
       );
 
       return parseHTML(html);
     },
-    [apiKey, lang, t.busyRetry, t.switchingModel],
+    [apiKey, lang, t.switchingModel, t.allBusy],
   );
 
   const runGeneration = useCallback(async () => {
