@@ -18,14 +18,7 @@ import {
   generateTextStream,
   resolveModels,
 } from '@/lib/textGeneration';
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 interface ContentContainerProps {
   contentBasis: string;
@@ -34,12 +27,12 @@ interface ContentContainerProps {
 
 type LoadingState = 'loading-spec' | 'loading-code' | 'ready' | 'error';
 
-const TABS = ['app', 'code', 'spec'] as const;
+const TABS = ['app', 'spec'] as const;
 
-export default forwardRef(function ContentContainer(
-  {contentBasis, onLoadingStateChange}: ContentContainerProps,
-  ref,
-) {
+export default function ContentContainer({
+  contentBasis,
+  onLoadingStateChange,
+}: ContentContainerProps) {
   const {t, lang, apiKey} = useSettings();
 
   const [spec, setSpec] = useState('');
@@ -53,15 +46,12 @@ export default forwardRef(function ContentContainer(
   const [isEditingSpec, setIsEditingSpec] = useState(false);
   const [editedSpec, setEditedSpec] = useState('');
   const [iframeKey, setIframeKey] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
 
   // Generation is expensive and paid for out of the user's own quota, so it
   // must fire exactly once per mount no matter how often effects re-run.
   const startedRef = useRef(false);
   const streamTailRef = useRef<HTMLPreElement>(null);
-
-  useImperativeHandle(ref, () => ({getSpec: () => spec, getCode: () => code}));
 
   useEffect(() => {
     onLoadingStateChange?.(
@@ -193,25 +183,9 @@ export default forwardRef(function ContentContainer(
     if (el) el.scrollTop = el.scrollHeight;
   }, [streamed]);
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 1800);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
   const handleRetry = () => {
     haptic();
     void runGeneration();
-  };
-
-  const handleCopy = async () => {
-    haptic();
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-    } catch (err) {
-      console.warn('Clipboard write failed:', err);
-    }
   };
 
   const handleSpecSave = async () => {
@@ -222,7 +196,7 @@ export default forwardRef(function ContentContainer(
 
     haptic();
     setSpec(trimmed);
-    setActiveTab(1);
+    setActiveTab(0);
 
     try {
       setLoadingState('loading-code');
@@ -294,29 +268,6 @@ export default forwardRef(function ContentContainer(
     );
   };
 
-  const renderCode = () => {
-    if (loadingState === 'error') return renderError();
-    if (loadingState !== 'ready') return renderProgress();
-    return (
-      <div className="pane">
-        <textarea
-          className="code-editor"
-          value={code}
-          spellCheck={false}
-          autoCapitalize="off"
-          autoCorrect="off"
-          onChange={(e) => setCode(e.target.value)}
-        />
-        <div className="pane-actions">
-          <button className="button-secondary" onClick={handleCopy}>
-            {copied ? t.copied : t.copyCode}
-          </button>
-          <span className="hint">{t.codeHint}</span>
-        </div>
-      </div>
-    );
-  };
-
   const renderSpec = () => {
     if (loadingState === 'loading-spec') return renderProgress();
     if (loadingState === 'error' && !spec) return renderError();
@@ -365,7 +316,7 @@ export default forwardRef(function ContentContainer(
     );
   };
 
-  const labels = [t.tabApp, t.tabCode, t.tabSpec];
+  const labels = [t.tabApp, t.tabSpec];
 
   return (
     <div className={fullScreen ? 'container container-full' : 'container'}>
@@ -387,8 +338,7 @@ export default forwardRef(function ContentContainer(
 
       <div className="tab-body">
         {activeTab === 0 && renderApp()}
-        {activeTab === 1 && renderCode()}
-        {activeTab === 2 && renderSpec()}
+        {activeTab === 1 && renderSpec()}
       </div>
 
       <style>{`
@@ -485,21 +435,14 @@ export default forwardRef(function ContentContainer(
           right: 0.65rem;
         }
 
-        .code-editor,
         .spec-editor {
           flex: 1;
-          font-family: var(--font-mono);
-          font-size: 13px;
+          font-family: var(--font-primary);
+          font-size: 15px;
           line-height: 1.5;
           min-height: 240px;
           overflow: auto;
           resize: none;
-          white-space: pre;
-        }
-
-        .spec-editor {
-          font-family: var(--font-primary);
-          font-size: 15px;
           white-space: pre-wrap;
         }
 
@@ -571,4 +514,4 @@ export default forwardRef(function ContentContainer(
       `}</style>
     </div>
   );
-});
+}

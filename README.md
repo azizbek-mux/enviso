@@ -96,7 +96,7 @@ BotFather hands back a `t.me/<bot>/<app>` link. That link is the product.
 
 ```
 App.tsx                         screen layout, URL input, language toggle
-components/ContentContainer.tsx  generation state machine and the three tabs
+components/ContentContainer.tsx  generation state machine and the two tabs
 components/KeyGate.tsx           bring-your-own-key onboarding
 components/Diagnostics.tsx       probes what the user's key can actually do
 lib/prompts.ts                   both prompts — the product's behavior lives here

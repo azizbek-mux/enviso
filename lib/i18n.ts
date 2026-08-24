@@ -33,7 +33,6 @@ const en = {
   invalidUrl: 'That does not look like a YouTube link',
 
   tabApp: 'App',
-  tabCode: 'Code',
   tabSpec: 'Plan',
 
   loadingSpec: 'Watching the video and writing a plan...',
@@ -52,11 +51,9 @@ const en = {
   edit: 'Edit',
   saveRegenerate: 'Save and rebuild',
   cancel: 'Cancel',
-  copyCode: 'Copy code',
   copied: 'Copied',
   openFull: 'Open full screen',
   closeFull: 'Close',
-  codeHint: 'Edit the HTML and the App tab updates',
 
 
   keyTitle: 'Add your Gemini API key',
@@ -98,7 +95,6 @@ const uz: typeof en = {
   invalidUrl: 'Bu YouTube havolasiga oʻxshamaydi',
 
   tabApp: 'Ilova',
-  tabCode: 'Kod',
   tabSpec: 'Reja',
 
   loadingSpec: 'Video koʻrilmoqda va reja tuzilmoqda...',
@@ -118,11 +114,9 @@ const uz: typeof en = {
   edit: 'Tahrirlash',
   saveRegenerate: 'Saqlash va qayta yasash',
   cancel: 'Bekor qilish',
-  copyCode: 'Kodni nusxalash',
   copied: 'Nusxalandi',
   openFull: 'Toʻliq ekran',
   closeFull: 'Yopish',
-  codeHint: 'HTML ni tahrirlang, "Ilova" boʻlimi yangilanadi',
 
 
   keyTitle: 'Gemini API kalitingizni kiriting',
