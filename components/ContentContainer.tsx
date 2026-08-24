@@ -13,6 +13,7 @@ import {
 import {currentPalette, haptic, notify} from '@/lib/telegram';
 import {
   ModelError,
+  OverloadedError,
   QuotaError,
   generateText,
   generateTextStream,
@@ -88,6 +89,8 @@ export default forwardRef(function ContentContainer(
         modelName: models.spec,
         prompt: SPEC_FROM_VIDEO_PROMPT,
         videoUrl,
+        onRetry: (info) =>
+          setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
         config: {
           responseMimeType: 'application/json',
           responseSchema: SPEC_RESPONSE_SCHEMA as never,
@@ -100,7 +103,7 @@ export default forwardRef(function ContentContainer(
       }
       return parsed.spec as string;
     },
-    [apiKey],
+    [apiKey, t.busyRetry],
   );
 
   const generateCodeFromSpec = useCallback(
@@ -114,6 +117,8 @@ export default forwardRef(function ContentContainer(
           modelName,
           prompt,
           onChunk: setStreamed,
+          onRetry: (info) =>
+            setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
         });
 
       try {
@@ -122,7 +127,13 @@ export default forwardRef(function ContentContainer(
         // Free keys often have no quota on the larger model, and Google
         // retires model ids from under us. Both are recoverable by dropping
         // to whatever else this key can run.
-        if (err instanceof QuotaError || err instanceof ModelError) {
+        // An overloaded model is worth trying on a different model too: the
+        // busy one is often just the newest, most contended release.
+        if (
+          err instanceof QuotaError ||
+          err instanceof ModelError ||
+          err instanceof OverloadedError
+        ) {
           if (err instanceof ModelError) resetModelCache();
           setNotice(t.quotaFallback);
           setStreamed('');
@@ -132,7 +143,7 @@ export default forwardRef(function ContentContainer(
         throw err;
       }
     },
-    [apiKey, lang, t.quotaFallback],
+    [apiKey, lang, t.quotaFallback, t.busyRetry],
   );
 
   const runGeneration = useCallback(async () => {
@@ -155,11 +166,17 @@ export default forwardRef(function ContentContainer(
       notify('success');
     } catch (err) {
       console.error('Generation failed:', err);
-      setError(err instanceof Error ? err.message : String(err));
+      setError(
+        err instanceof OverloadedError
+          ? t.busyGaveUp
+          : err instanceof Error
+            ? err.message
+            : String(err),
+      );
       setLoadingState('error');
       notify('error');
     }
-  }, [contentBasis, generateSpecFromVideo, generateCodeFromSpec]);
+  }, [contentBasis, generateSpecFromVideo, generateCodeFromSpec, t.busyGaveUp]);
 
   useEffect(() => {
     if (startedRef.current) return;

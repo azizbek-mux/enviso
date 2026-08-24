@@ -26,6 +26,17 @@ const FALLBACK_CODE_MODEL = 'gemini-3.7-flash';
 export class QuotaError extends Error {}
 export class AuthError extends Error {}
 export class ModelError extends Error {}
+/** Google's capacity problem, not ours: worth simply waiting out. */
+export class OverloadedError extends Error {}
+
+/** Backoff before each retry of an overloaded model. */
+const RETRY_DELAYS_MS = [3000, 8000, 20000];
+
+export interface RetryInfo {
+  attempt: number;
+  of: number;
+  waitMs: number;
+}
 
 export interface ModelChoice {
   /** Watches the video and drafts the plan. */
@@ -43,6 +54,33 @@ interface GenerateOptions {
   videoUrl?: string;
   temperature?: number;
   config?: GenerateContentConfig;
+  /** Called before each backoff wait, so the UI can explain the pause. */
+  onRetry?: (info: RetryInfo) => void;
+}
+
+/**
+ * Retry a call that failed only because the model was busy.
+ *
+ * An overloaded model is the one failure here that reliably fixes itself, so
+ * dead-ending the user on the first 503 throws away a generation they were
+ * about to get for free.
+ */
+async function withRetry<T>(
+  run: () => Promise<T>,
+  onRetry?: (info: RetryInfo) => void,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run();
+    } catch (error) {
+      const isLast = attempt >= RETRY_DELAYS_MS.length;
+      if (!(error instanceof OverloadedError) || isLast) throw error;
+
+      const waitMs = RETRY_DELAYS_MS[attempt];
+      onRetry?.({attempt: attempt + 1, of: RETRY_DELAYS_MS.length, waitMs});
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -240,18 +278,20 @@ export async function generateText(options: GenerateOptions): Promise<string> {
 
   const ai = new GoogleGenAI({apiKey});
 
-  try {
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
-      config: {temperature, ...options.config},
-    });
-    checkCandidate(response);
-    return response.text ?? '';
-  } catch (error) {
-    console.error('Gemini call failed:', error);
-    throw classify(error);
-  }
+  return withRetry(async () => {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
+        config: {temperature, ...options.config},
+      });
+      checkCandidate(response);
+      return response.text ?? '';
+    } catch (error) {
+      console.error('Gemini call failed:', error);
+      throw classify(error);
+    }
+  }, options.onRetry);
 }
 
 /**
@@ -273,31 +313,37 @@ export async function generateTextStream(
   if (!apiKey) throw new AuthError('Gemini API key is missing');
 
   const ai = new GoogleGenAI({apiKey});
-  let accumulated = '';
 
-  try {
-    const stream = await ai.models.generateContentStream({
-      model: modelName,
-      contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
-      config: {temperature, ...options.config},
-    });
+  return withRetry(async () => {
+    // Each attempt starts from nothing, so a stream that dies halfway cannot
+    // leave half a document glued to the front of the retry.
+    let accumulated = '';
+    onChunk?.('');
 
-    let last: Parameters<typeof checkCandidate>[0] | undefined;
-    for await (const chunk of stream) {
-      last = chunk;
-      if (chunk.text) {
-        accumulated += chunk.text;
-        onChunk?.(accumulated);
+    try {
+      const stream = await ai.models.generateContentStream({
+        model: modelName,
+        contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
+        config: {temperature, ...options.config},
+      });
+
+      let last: Parameters<typeof checkCandidate>[0] | undefined;
+      for await (const chunk of stream) {
+        last = chunk;
+        if (chunk.text) {
+          accumulated += chunk.text;
+          onChunk?.(accumulated);
+        }
       }
-    }
 
-    if (last) checkCandidate(last);
-    if (!accumulated) throw new Error('The model returned no output.');
-    return accumulated;
-  } catch (error) {
-    console.error('Gemini stream failed:', error);
-    throw classify(error);
-  }
+      if (last) checkCandidate(last);
+      if (!accumulated) throw new Error('The model returned no output.');
+      return accumulated;
+    } catch (error) {
+      console.error('Gemini stream failed:', error);
+      throw classify(error);
+    }
+  }, options.onRetry);
 }
 
 /**
