@@ -58,7 +58,6 @@ const en = {
   closeFull: 'Close',
   codeHint: 'Edit the HTML and the App tab updates',
 
-  examples: 'Examples',
 
   keyTitle: 'Add your Gemini API key',
   keyIntro:
@@ -125,7 +124,6 @@ const uz: typeof en = {
   closeFull: 'Yopish',
   codeHint: 'HTML ni tahrirlang, "Ilova" boʻlimi yangilanadi',
 
-  examples: 'Namunalar',
 
   keyTitle: 'Gemini API kalitingizni kiriting',
   keyIntro:

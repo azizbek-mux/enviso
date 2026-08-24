@@ -4,24 +4,20 @@
  */
 
 import ContentContainer from '@/components/ContentContainer';
-import ExampleGallery from '@/components/ExampleGallery';
 import KeyGate from '@/components/KeyGate';
-import {useData, useSettings} from '@/context';
+import {useSettings} from '@/context';
 import {LANGUAGES, type Lang} from '@/lib/i18n';
 import {haptic} from '@/lib/telegram';
-import type {Example} from '@/lib/types';
 import {getYoutubeEmbedUrl, validateYoutubeUrl} from '@/lib/youtube';
 import {useRef, useState} from 'react';
 
 export default function App() {
   const {t, lang, setLang, apiKey, keyLoading} = useSettings();
-  const {examples} = useData();
 
   const [videoUrl, setVideoUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [reloadCounter, setReloadCounter] = useState(0);
-  const [selectedExample, setSelectedExample] = useState<Example | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,28 +33,15 @@ export default function App() {
 
     haptic('medium');
     setUrlError(null);
-    setSelectedExample(null);
 
-    const isKnownExample = examples.some((example) => example.url === value);
-    if (!isKnownExample) {
-      const {isValid} = await validateYoutubeUrl(value);
-      if (!isValid) {
-        setUrlError(t.invalidUrl);
-        return;
-      }
+    const {isValid} = await validateYoutubeUrl(value);
+    if (!isValid) {
+      setUrlError(t.invalidUrl);
+      return;
     }
 
     setVideoUrl(value);
     // Bumping the key remounts ContentContainer, which restarts generation.
-    setReloadCounter((c) => c + 1);
-  };
-
-  const handleExampleSelect = (example: Example) => {
-    haptic();
-    if (inputRef.current) inputRef.current.value = example.url;
-    setUrlError(null);
-    setSelectedExample(example);
-    setVideoUrl(example.url);
     setReloadCounter((c) => c + 1);
   };
 
@@ -165,22 +148,11 @@ export default function App() {
             key={reloadCounter}
             contentBasis={videoUrl}
             onLoadingStateChange={setContentLoading}
-            preSeededSpec={selectedExample?.spec}
-            preSeededCode={selectedExample?.code}
           />
         ) : (
           <div className="output-placeholder hint">{t.contentPlaceholder}</div>
         )}
       </section>
-
-      {examples.length > 0 && (
-        <section className="examples">
-          <ExampleGallery
-            selectedExample={selectedExample}
-            onSelectExample={handleExampleSelect}
-          />
-        </section>
-      )}
 
       <Styles />
     </div>
@@ -327,14 +299,13 @@ function Styles() {
 
         .header,
         .controls,
-        .video,
-        .examples {
+        .video {
           grid-column: 1;
         }
 
         .output {
           grid-column: 2;
-          grid-row: 1 / span 4;
+          grid-row: 1 / span 3;
           min-height: min(80vh, 760px);
         }
       }

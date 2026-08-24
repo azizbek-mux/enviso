@@ -4,29 +4,7 @@
  */
 
 import type {Lang, Strings} from '@/lib/i18n';
-import type {Example} from '@/lib/types';
-import {
-  type Dispatch,
-  type SetStateAction,
-  createContext,
-  useContext,
-} from 'react';
-
-export interface Data {
-  examples: Example[];
-  setExamples: Dispatch<SetStateAction<Example[]>>;
-  defaultExample: Example | undefined;
-  isLoading: boolean;
-}
-
-export const DataContext = createContext<Data>({
-  examples: [],
-  setExamples: () => {},
-  defaultExample: undefined,
-  isLoading: true,
-});
-
-export const useData = () => useContext(DataContext);
+import {createContext, useContext} from 'react';
 
 export interface Settings {
   lang: Lang;

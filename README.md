@@ -41,13 +41,16 @@ must:
 
 ## How generation works
 
-1. **Video → plan.** `gemini-2.5-flash` watches the video and returns a JSON
-   spec, constrained by a response schema so it cannot drift out of shape.
-2. **Plan → app.** `gemini-2.5-pro` streams a single self-contained HTML
-   document. Streaming matters here: this step takes a minute or more, and on a
-   phone visible progress is the difference between waiting and closing the app.
-   If the key has no free quota left on Pro, it falls back to Flash
-   automatically rather than dead-ending.
+1. **Video → plan.** A Flash model watches the video and returns a JSON spec,
+   constrained by a response schema so it cannot drift out of shape.
+2. **Plan → app.** The best model the key can reach streams a single
+   self-contained HTML document. Streaming matters here: this step takes a
+   minute or more, and on a phone visible progress is the difference between
+   waiting and closing the app.
+
+Model ids are never hardcoded. The app asks the key which models it may call
+and picks the newest, because Google retires model names and a hardcoded one
+becomes a 404 on a timer.
 
 The result renders in a sandboxed iframe. Because that sandbox has no
 same-origin access, the prompt forbids `localStorage`, cookies and any network
@@ -92,20 +95,24 @@ BotFather hands back a `t.me/<bot>/<app>` link. That link is the product.
 ## Layout
 
 ```
-App.tsx                        screen layout, URL input, language toggle
-components/ContentContainer.tsx generation state machine and the three tabs
-components/KeyGate.tsx          bring-your-own-key onboarding
-components/ExampleGallery.tsx   the pre-baked example videos
-lib/prompts.ts                  both prompts — the product's behavior lives here
-lib/textGeneration.ts           Gemini client: streaming, quota fallback, key check
-lib/telegram.ts                 Mini App SDK wrapper with browser fallbacks
-lib/i18n.ts                     interface strings, uz + en
+App.tsx                         screen layout, URL input, language toggle
+components/ContentContainer.tsx  generation state machine and the three tabs
+components/KeyGate.tsx           bring-your-own-key onboarding
+components/Diagnostics.tsx       probes what the user's key can actually do
+lib/prompts.ts                   both prompts — the product's behavior lives here
+lib/textGeneration.ts            model discovery, streaming, busy-model handling
+lib/telegram.ts                  Mini App SDK wrapper with browser fallbacks
+lib/i18n.ts                      interface strings, uz + en
 ```
 
-## Known gap
+## When a model is busy
 
-The 12 videos in the example gallery ship with pre-baked English-only apps
-inherited from the original sample, so tapping one shows an English app rather
-than a bilingual one. They cost no quota and load instantly, which is why they
-are still there. Regenerating them through the new bilingual prompt would fix
-this at a one-time cost of 12 generations.
+Google returns "this model is currently experiencing high demand" on its
+newest model far more often than on the one behind it. The app tries every
+model its key can see, in one quick pass with no delay, and only starts
+waiting once all of them have refused. Whichever model worked is remembered
+and tried first next time.
+
+If something does fail, the settings screen has a **Run check** button that
+probes the key directly and reports, per model, whether text and video
+requests are accepted. That is far faster than guessing.

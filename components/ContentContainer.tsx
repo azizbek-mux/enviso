@@ -29,8 +29,6 @@ import {
 
 interface ContentContainerProps {
   contentBasis: string;
-  preSeededSpec?: string;
-  preSeededCode?: string;
   onLoadingStateChange?: (isLoading: boolean) => void;
 }
 
@@ -39,24 +37,16 @@ type LoadingState = 'loading-spec' | 'loading-code' | 'ready' | 'error';
 const TABS = ['app', 'code', 'spec'] as const;
 
 export default forwardRef(function ContentContainer(
-  {
-    contentBasis,
-    preSeededSpec,
-    preSeededCode,
-    onLoadingStateChange,
-  }: ContentContainerProps,
+  {contentBasis, onLoadingStateChange}: ContentContainerProps,
   ref,
 ) {
   const {t, lang, apiKey} = useSettings();
 
-  const preSeeded = Boolean(preSeededSpec && preSeededCode);
-
-  const [spec, setSpec] = useState(preSeededSpec || '');
-  const [code, setCode] = useState(preSeededCode || '');
+  const [spec, setSpec] = useState('');
+  const [code, setCode] = useState('');
   const [streamed, setStreamed] = useState('');
-  const [loadingState, setLoadingState] = useState<LoadingState>(
-    preSeeded ? 'ready' : 'loading-spec',
-  );
+  const [loadingState, setLoadingState] =
+    useState<LoadingState>('loading-spec');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -189,14 +179,8 @@ export default forwardRef(function ContentContainer(
     if (startedRef.current) return;
     startedRef.current = true;
 
-    if (preSeeded) {
-      setSpec(preSeededSpec!);
-      setCode(preSeededCode!);
-      setLoadingState('ready');
-      return;
-    }
     void runGeneration();
-  }, [preSeeded, preSeededSpec, preSeededCode, runGeneration]);
+  }, [runGeneration]);
 
   // Remount the preview whenever the code changes, including manual edits.
   useEffect(() => {
