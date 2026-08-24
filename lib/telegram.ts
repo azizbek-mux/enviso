@@ -1,0 +1,220 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * Thin wrapper around the Telegram Mini App SDK.
+ *
+ * Every function degrades to a sane browser fallback so the app stays fully
+ * usable outside Telegram (local dev, desktop browser, sharing a plain link).
+ */
+
+interface ThemeParams {
+  bg_color?: string;
+  text_color?: string;
+  hint_color?: string;
+  link_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  secondary_bg_color?: string;
+  section_bg_color?: string;
+  destructive_text_color?: string;
+}
+
+interface TelegramWebApp {
+  version: string;
+  initData: string;
+  initDataUnsafe: {user?: {id: number; language_code?: string}};
+  colorScheme: 'light' | 'dark';
+  themeParams: ThemeParams;
+  viewportStableHeight: number;
+  isExpanded: boolean;
+  ready: () => void;
+  expand: () => void;
+  isVersionAtLeast: (version: string) => boolean;
+  disableVerticalSwipes?: () => void;
+  onEvent: (event: string, handler: () => void) => void;
+  offEvent: (event: string, handler: () => void) => void;
+  openLink: (url: string, options?: {try_instant_view?: boolean}) => void;
+  HapticFeedback?: {
+    impactOccurred: (style: string) => void;
+    notificationOccurred: (type: string) => void;
+  };
+  CloudStorage?: {
+    getItem: (
+      key: string,
+      cb: (err: string | null, value?: string) => void,
+    ) => void;
+    setItem: (
+      key: string,
+      value: string,
+      cb?: (err: string | null, ok?: boolean) => void,
+    ) => void;
+    removeItem: (key: string, cb?: (err: string | null) => void) => void;
+  };
+}
+
+export const tg: TelegramWebApp | undefined = (globalThis as any).Telegram
+  ?.WebApp;
+
+/**
+ * The Telegram script defines window.Telegram.WebApp even on a plain web page,
+ * so presence alone proves nothing -- a real client always supplies initData.
+ */
+export const isTelegram = Boolean(tg?.initData);
+
+/** CloudStorage was added in Bot API 6.9; older clients expose a stub that
+ * logs an error and never calls back. */
+const hasCloudStorage = () =>
+  Boolean(tg?.CloudStorage && tg.isVersionAtLeast?.('6.9'));
+
+/** Never let a silent SDK callback block startup. */
+function withTimeout<T>(
+  executor: (resolve: (value: T) => void) => void,
+  fallback: T,
+  ms = 3000,
+): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    const done = (value: T) => {
+      clearTimeout(timer);
+      resolve(value);
+    };
+    try {
+      executor(done);
+    } catch {
+      done(fallback);
+    }
+  });
+}
+
+/** Call once at startup: tell Telegram we're painted, and take the full sheet. */
+export function initTelegram() {
+  if (!tg) return;
+  tg.ready();
+  tg.expand();
+  // Stops the sheet from being dragged closed while scrolling generated content.
+  tg.disableVerticalSwipes?.();
+  applyTheme();
+  tg.onEvent('themeChanged', applyTheme);
+  tg.onEvent('viewportChanged', applyViewport);
+  applyViewport();
+}
+
+/**
+ * Map Telegram's theme onto the CSS custom properties in index.css, so the
+ * app repaints itself to match whatever theme the user runs Telegram in.
+ */
+export function applyTheme() {
+  if (!tg) return;
+  const p = tg.themeParams;
+  const root = document.documentElement;
+  const set = (name: string, value?: string) =>
+    value && root.style.setProperty(name, value);
+
+  root.dataset.theme = tg.colorScheme;
+  root.style.colorScheme = tg.colorScheme;
+
+  set('--color-background', p.bg_color);
+  set('--color-surface', p.secondary_bg_color || p.section_bg_color);
+  set('--color-text', p.text_color);
+  set('--color-hint', p.hint_color);
+  set('--color-accent', p.button_color || p.link_color);
+  set('--color-accent-text', p.button_text_color);
+  set('--color-error', p.destructive_text_color);
+}
+
+function applyViewport() {
+  if (!tg) return;
+  document.documentElement.style.setProperty(
+    '--tg-viewport-height',
+    `${tg.viewportStableHeight}px`,
+  );
+}
+
+/** The palette actually on screen right now, for embedding into prompts. */
+export function currentPalette() {
+  const read = (name: string, fallback: string) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
+    fallback;
+  return {
+    scheme: tg?.colorScheme ?? 'light',
+    background: read('--color-background', '#ffffff'),
+    text: read('--color-text', '#000000'),
+    hint: read('--color-hint', '#707579'),
+    accent: read('--color-accent', '#3390ec'),
+    accentText: read('--color-accent-text', '#ffffff'),
+  };
+}
+
+export function haptic(style: 'light' | 'medium' | 'heavy' = 'light') {
+  tg?.HapticFeedback?.impactOccurred(style);
+}
+
+export function notify(type: 'success' | 'warning' | 'error') {
+  tg?.HapticFeedback?.notificationOccurred(type);
+}
+
+/** Open a URL outside the Mini App webview (Telegram blocks plain target=_blank). */
+export function openExternal(url: string) {
+  if (tg?.openLink) tg.openLink(url);
+  else globalThis.open?.(url, '_blank', 'noopener');
+}
+
+/** The user's Telegram interface language, e.g. 'uz', 'en', 'ru'. */
+export function telegramLanguage(): string | undefined {
+  return tg?.initDataUnsafe?.user?.language_code;
+}
+
+/**
+ * Persistent key/value storage.
+ *
+ * Uses Telegram CloudStorage when available, so a saved API key follows the
+ * user across their devices; falls back to localStorage in a plain browser.
+ */
+export const storage = {
+  async get(key: string): Promise<string | null> {
+    if (hasCloudStorage()) {
+      const cloud = await withTimeout<string | null>(
+        (resolve) =>
+          tg!.CloudStorage!.getItem(key, (err, value) =>
+            resolve(err ? null : (value ?? null)),
+          ),
+        null,
+      );
+      if (cloud) return cloud;
+    }
+    try {
+      return globalThis.localStorage?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  async set(key: string, value: string): Promise<void> {
+    try {
+      if (hasCloudStorage()) tg!.CloudStorage!.setItem(key, value);
+    } catch {
+      /* CloudStorage is best-effort; the local copy below is the safety net. */
+    }
+    try {
+      globalThis.localStorage?.setItem(key, value);
+    } catch {
+      /* Private mode or blocked storage: the value simply won't persist. */
+    }
+  },
+
+  async remove(key: string): Promise<void> {
+    try {
+      if (hasCloudStorage()) tg!.CloudStorage!.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+    try {
+      globalThis.localStorage?.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  },
+};

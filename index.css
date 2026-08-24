@@ -1,0 +1,174 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * No web fonts and no external stylesheets on purpose: a Mini App often opens
+ * on a slow mobile connection, and the system font stack is what makes it feel
+ * native inside Telegram. Every value below is overwritten at runtime by
+ * lib/telegram.ts when the app runs inside a Telegram client.
+ */
+
+:root {
+  --color-background: #ffffff;
+  --color-surface: #f4f4f5;
+  --color-text: #000000;
+  --color-hint: #707579;
+  --color-accent: #3390ec;
+  --color-accent-text: #ffffff;
+  --color-error: #e53935;
+  --color-border: rgba(128, 128, 128, 0.28);
+
+  --radius: 12px;
+  --tg-viewport-height: 100dvh;
+
+  --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'Liberation Mono', monospace;
+
+  color-scheme: light dark;
+}
+
+:root[data-theme='dark'] {
+  --color-background: #17212b;
+  --color-surface: #232e3c;
+  --color-text: #ffffff;
+  --color-hint: #8b9398;
+  --color-accent: #5eabe1;
+  --color-accent-text: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-primary);
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3,
+p,
+figure,
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+button {
+  appearance: none;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+button:active:not(:disabled) {
+  opacity: 0.75;
+}
+
+.button-primary {
+  background-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.button-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.button-ghost {
+  background: transparent;
+  color: var(--color-accent);
+  min-height: 36px;
+  padding: 0.35rem 0.6rem;
+}
+
+input,
+textarea {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font: inherit;
+  padding: 0.75rem;
+  width: 100%;
+  /* 16px minimum stops iOS Safari zooming the viewport on focus. */
+  font-size: 16px;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+input:disabled {
+  opacity: 0.6;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-hint);
+}
+
+.hint {
+  color: var(--color-hint);
+  font-size: 0.85rem;
+}
+
+.spinner {
+  animation: spin 0.9s linear infinite;
+  border: 3px solid var(--color-border);
+  border-radius: 50%;
+  border-top-color: var(--color-accent);
+  height: 42px;
+  width: 42px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
