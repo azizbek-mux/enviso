@@ -12,12 +12,12 @@ import {
 } from '@/lib/prompts';
 import {currentPalette, haptic, notify} from '@/lib/telegram';
 import {
-  CODE_FALLBACK_MODEL,
-  CODE_MODEL,
+  ModelError,
   QuotaError,
-  SPEC_MODEL,
   generateText,
   generateTextStream,
+  resetModelCache,
+  resolveModels,
 } from '@/lib/textGeneration';
 import {
   forwardRef,
@@ -82,9 +82,10 @@ export default forwardRef(function ContentContainer(
 
   const generateSpecFromVideo = useCallback(
     async (videoUrl: string) => {
+      const models = await resolveModels(apiKey!);
       const response = await generateText({
         apiKey: apiKey!,
-        modelName: SPEC_MODEL,
+        modelName: models.spec,
         prompt: SPEC_FROM_VIDEO_PROMPT,
         videoUrl,
         config: {
@@ -105,6 +106,7 @@ export default forwardRef(function ContentContainer(
   const generateCodeFromSpec = useCallback(
     async (baseSpec: string) => {
       const prompt = baseSpec + buildSpecAddendum(currentPalette(), lang);
+      const models = await resolveModels(apiKey!);
 
       const run = (modelName: string) =>
         generateTextStream({
@@ -115,14 +117,17 @@ export default forwardRef(function ContentContainer(
         });
 
       try {
-        return parseHTML(await run(CODE_MODEL));
+        return parseHTML(await run(models.code));
       } catch (err) {
-        // Free-tier keys frequently have no quota on the larger model. Falling
-        // back keeps the app usable instead of dead-ending the user.
-        if (err instanceof QuotaError) {
+        // Free keys often have no quota on the larger model, and Google
+        // retires model ids from under us. Both are recoverable by dropping
+        // to whatever else this key can run.
+        if (err instanceof QuotaError || err instanceof ModelError) {
+          if (err instanceof ModelError) resetModelCache();
           setNotice(t.quotaFallback);
           setStreamed('');
-          return parseHTML(await run(CODE_FALLBACK_MODEL));
+          const retry = await resolveModels(apiKey!);
+          return parseHTML(await run(retry.fallback));
         }
         throw err;
       }
