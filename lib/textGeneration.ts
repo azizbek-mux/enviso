@@ -32,6 +32,9 @@ export class OverloadedError extends Error {}
 /** Backoff before each retry of an overloaded model. */
 const RETRY_DELAYS_MS = [3000, 8000, 20000];
 
+/** Enough alternates to outlast a busy spell, few enough to bound the wait. */
+const MAX_CHAIN_LENGTH = 4;
+
 export interface RetryInfo {
   attempt: number;
   of: number;
@@ -43,8 +46,14 @@ export interface ModelChoice {
   spec: string;
   /** Writes the app. */
   code: string;
-  /** Used when `code` has no quota left. */
-  fallback: string;
+  /**
+   * Distinct models to walk when one is busy or out of quota, newest first.
+   *
+   * The newest model is also the most contended, so "try again on the
+   * fallback" is worthless if the fallback resolves to the same name. These
+   * are guaranteed to be different models.
+   */
+  chain: string[];
 }
 
 interface GenerateOptions {
@@ -168,14 +177,16 @@ export async function resolveModels(apiKey: string): Promise<ModelChoice> {
     // A key limited to flash-lite should still work, badly, rather than fail.
     const spec = flash[0] ?? capable[0] ?? models[0];
     const code = capable[0] ?? models[0];
-    const fallback = flash[0] ?? capable[0] ?? models[0];
 
-    if (spec && code) {
-      cachedChoice = {
-        spec: spec.id,
-        code: code.id,
-        fallback: (fallback ?? spec).id,
-      };
+    // Capable models first, then lite ones, which are far less contended and
+    // still beat showing the user nothing.
+    const chain = [...new Set([...capable, ...models].map((m) => m.id))].slice(
+      0,
+      MAX_CHAIN_LENGTH,
+    );
+
+    if (spec && code && chain.length) {
+      cachedChoice = {spec: spec.id, code: code.id, chain};
       console.info('Resolved Gemini models:', cachedChoice);
       return cachedChoice;
     }
@@ -186,9 +197,42 @@ export async function resolveModels(apiKey: string): Promise<ModelChoice> {
   cachedChoice = {
     spec: FALLBACK_SPEC_MODEL,
     code: FALLBACK_CODE_MODEL,
-    fallback: FALLBACK_SPEC_MODEL,
+    chain: [...new Set([FALLBACK_SPEC_MODEL, FALLBACK_CODE_MODEL])],
   };
   return cachedChoice;
+}
+
+/**
+ * Run `attempt` against each model in turn until one of them works.
+ *
+ * Busy, out-of-quota and retired models are all "ask someone else" problems.
+ * Anything else -- a bad key, a blocked prompt -- fails immediately, because
+ * no other model would answer differently.
+ */
+export async function acrossModels<T>(
+  chain: string[],
+  attempt: (modelName: string) => Promise<T>,
+  onSwitch?: (nextModel: string, previous: Error) => void,
+): Promise<T> {
+  let lastError: Error = new Error('No usable Gemini model found');
+
+  for (let i = 0; i < chain.length; i++) {
+    try {
+      return await attempt(chain[i]);
+    } catch (error) {
+      const recoverable =
+        error instanceof OverloadedError ||
+        error instanceof QuotaError ||
+        error instanceof ModelError;
+      if (!recoverable) throw error;
+
+      lastError = error as Error;
+      const next = chain[i + 1];
+      if (next) onSwitch?.(next, lastError);
+    }
+  }
+
+  throw lastError;
 }
 
 /* -------------------------------------------------------------------------- */

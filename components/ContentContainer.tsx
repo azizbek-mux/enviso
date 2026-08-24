@@ -12,12 +12,10 @@ import {
 } from '@/lib/prompts';
 import {currentPalette, haptic, notify} from '@/lib/telegram';
 import {
-  ModelError,
   OverloadedError,
-  QuotaError,
+  acrossModels,
   generateText,
   generateTextStream,
-  resetModelCache,
   resolveModels,
 } from '@/lib/textGeneration';
 import {
@@ -84,18 +82,28 @@ export default forwardRef(function ContentContainer(
   const generateSpecFromVideo = useCallback(
     async (videoUrl: string) => {
       const models = await resolveModels(apiKey!);
-      const response = await generateText({
-        apiKey: apiKey!,
-        modelName: models.spec,
-        prompt: SPEC_FROM_VIDEO_PROMPT,
-        videoUrl,
-        onRetry: (info) =>
-          setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: SPEC_RESPONSE_SCHEMA as never,
-        },
-      });
+      const chain = [
+        models.spec,
+        ...models.chain.filter((id) => id !== models.spec),
+      ];
+
+      const response = await acrossModels(
+        chain,
+        (modelName) =>
+          generateText({
+            apiKey: apiKey!,
+            modelName,
+            prompt: SPEC_FROM_VIDEO_PROMPT,
+            videoUrl,
+            onRetry: (info) =>
+              setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: SPEC_RESPONSE_SCHEMA as never,
+            },
+          }),
+        (nextModel) => setNotice(`${t.switchingModel}: ${nextModel}`),
+      );
 
       const parsed = parseJSON(response);
       if (!parsed?.spec) {
@@ -103,7 +111,7 @@ export default forwardRef(function ContentContainer(
       }
       return parsed.spec as string;
     },
-    [apiKey, t.busyRetry],
+    [apiKey, t.busyRetry, t.switchingModel],
   );
 
   const generateCodeFromSpec = useCallback(
@@ -111,39 +119,33 @@ export default forwardRef(function ContentContainer(
       const prompt = baseSpec + buildSpecAddendum(currentPalette(), lang);
       const models = await resolveModels(apiKey!);
 
-      const run = (modelName: string) =>
-        generateTextStream({
-          apiKey: apiKey!,
-          modelName,
-          prompt,
-          onChunk: setStreamed,
-          onRetry: (info) =>
-            setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
-        });
+      // Start at the model best suited to writing code, then walk outward to
+      // older, less contended ones.
+      const chain = [
+        models.code,
+        ...models.chain.filter((id) => id !== models.code),
+      ];
 
-      try {
-        return parseHTML(await run(models.code));
-      } catch (err) {
-        // Free keys often have no quota on the larger model, and Google
-        // retires model ids from under us. Both are recoverable by dropping
-        // to whatever else this key can run.
-        // An overloaded model is worth trying on a different model too: the
-        // busy one is often just the newest, most contended release.
-        if (
-          err instanceof QuotaError ||
-          err instanceof ModelError ||
-          err instanceof OverloadedError
-        ) {
-          if (err instanceof ModelError) resetModelCache();
-          setNotice(t.quotaFallback);
+      const html = await acrossModels(
+        chain,
+        (modelName) =>
+          generateTextStream({
+            apiKey: apiKey!,
+            modelName,
+            prompt,
+            onChunk: setStreamed,
+            onRetry: (info) =>
+              setNotice(`${t.busyRetry} (${info.attempt}/${info.of})`),
+          }),
+        (nextModel) => {
           setStreamed('');
-          const retry = await resolveModels(apiKey!);
-          return parseHTML(await run(retry.fallback));
-        }
-        throw err;
-      }
+          setNotice(`${t.switchingModel}: ${nextModel}`);
+        },
+      );
+
+      return parseHTML(html);
     },
-    [apiKey, lang, t.quotaFallback, t.busyRetry],
+    [apiKey, lang, t.busyRetry, t.switchingModel],
   );
 
   const runGeneration = useCallback(async () => {
