@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import Diagnostics from '@/components/Diagnostics';
 import {useSettings} from '@/context';
 import {haptic, notify, openExternal} from '@/lib/telegram';
 import {validateApiKey} from '@/lib/textGeneration';
@@ -108,6 +109,8 @@ export default function KeyGate({onClose}: KeyGateProps) {
         </button>
 
         <p className="hint key-privacy">{t.keyStored}</p>
+
+        {apiKey && <Diagnostics />}
 
         {apiKey && (
           <div className="key-existing">

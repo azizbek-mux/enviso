@@ -71,6 +71,12 @@ const en = {
   keyBad: 'That key was rejected. Check it and try again.',
   keyStored:
     'Your key is stored in your own Telegram cloud storage and is never sent anywhere except Google.',
+  diagTitle: 'Check what your key can do',
+  diagIntro:
+    'Runs a few tiny test requests and shows exactly which models work, which are busy, and whether video input is allowed.',
+  diagRun: 'Run check',
+  diagRunning: 'Checking...',
+  diagCopy: 'Copy result',
   keyChange: 'Change API key',
   keyRemove: 'Remove key',
   settings: 'Settings',
@@ -131,6 +137,12 @@ const uz: typeof en = {
   keyBad: 'Kalit qabul qilinmadi. Tekshirib, qayta urinib koʻring.',
   keyStored:
     'Kalitingiz oʻzingizning Telegram bulut xotirangizda saqlanadi va Google dan boshqa hech qayerga yuborilmaydi.',
+  diagTitle: 'Kalitingiz nima qila olishini tekshirish',
+  diagIntro:
+    'Bir nechta kichik test soʻrovlari yuboradi va qaysi modellar ishlashini, qaysilari band ekanini va video kiritishga ruxsat borligini koʻrsatadi.',
+  diagRun: 'Tekshirish',
+  diagRunning: 'Tekshirilmoqda...',
+  diagCopy: 'Natijani nusxalash',
   keyChange: 'Kalitni oʻzgartirish',
   keyRemove: 'Kalitni oʻchirish',
   settings: 'Sozlamalar',
