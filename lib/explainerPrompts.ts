@@ -227,7 +227,7 @@ export function buildSectionPrompt(
   section: PlannedSection,
   spec: string,
   facts: string,
-  shell: string,
+  identity: string,
 ): string {
   return `You are writing ONE section of a long-form explainer website about a research publication. The rest of the site already exists.
 
@@ -244,14 +244,16 @@ THE PAPER'S FACTS, as extracted data. Build every figure, table and chart from t
 
 ${facts}
 
-THE SHELL this is inserted into. Reuse its CSS classes and match its voice. Do not restate its styles and do not redefine anything it already provides:
+THE SITE'S IDENTITY, which every section shares:
 
-${shell}
+${identity}
+
+The surrounding document is being written at the same time as this section, so you cannot see it. You do not need to: it declares Tailwind with the config in the styling system below, loads Playfair Display and Inter, and provides the language toggle and the scroll handler. Style everything with the Tailwind classes named there and your section will match the rest exactly.
 
 RULES
 - Return exactly one <section> element with id="${section.key}", and nothing outside it.
 - Any JavaScript goes in a <script> INSIDE that section, wrapped in an IIFE so it cannot collide with another section. For three.js use a <script type="module"> inside your section, relying on the importmap the shell declares.
-- Use the shell's existing classes. Add a <style> inside your section only for rules genuinely specific to it.
+- Style with Tailwind utility classes from the vocabulary below. Add a <style> inside your section only for something Tailwind genuinely cannot express, such as a keyframe animation.
 - Make it substantial. This is the only section covering this ground, so give it the depth the plan asks for rather than a summary.
 
 ${HOUSE_STYLE}

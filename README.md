@@ -105,29 +105,29 @@ same: complete tables, per-record rows, statistics, procedure steps, authors.
 
 A single generation has one output budget, and a whole site does not fit in it:
 the hero, the 3D scene, every chart and all the prose end up competing for the
-same ceiling. So the research path is written in parts.
+same ceiling. So the research path is written in parts — and the parts are
+written at the same time.
 
-1. **Screening** reads the paper once and returns three things: the verdict,
-   the plan, and `facts` — a JSON blob of the paper's metadata, authors, real
-   numbers and table rows. Every later visual is built from that data rather
-   than from a model's memory of prose, which is what keeps the figures true.
-2. **The shell** is generated: the head, all shared CSS, the sticky header, the
-   hero, the language machinery, and a placeholder comment per section.
-3. **Each section** is then generated separately against that finished shell,
-   so it reuses the same classes instead of inventing its own, and each gets a
-   full output budget of its own.
-4. **Stitching** replaces each placeholder. A section that fails is retried
-   once, then skipped rather than losing the site; credits falls back to
-   markup built straight from the facts, since attribution is pure data.
+**Phase 1, two calls at once.** One reads the paper and returns the verdict,
+the plan, the summaries, the site identity and the section list. The other
+reads it again and returns `facts` — the metadata, authors, real numbers and
+full table rows every later visual is computed from. Together in one response
+they were the slowest thing in the pipeline; apart they cost a second read and
+halve the wait.
 
-Sections are written **three at a time**, because they depend on the shell but
-never on each other — writing them one after another spent most of the wall
-clock on work that could overlap. Three rather than six is bounded by a free
-key's tokens-per-minute, not its request rate: each section carries the plan,
-the facts and the shell as input.
+**Phase 2, four at once.** The shell and every section go into one pool. The
+shell carries the head, the fixed header, the hero and the language machinery;
+each section carries its own instrument. Sections used to wait for the shell so
+they could reuse its CSS classes, but the styling is Tailwind now, so the class
+vocabulary comes from the brief and nothing waits for anything else.
 
-That is seven model calls for one paper, against one for a video. It buys depth
-and real numbers, and it costs both quota and a few minutes.
+**Stitching.** Each section replaces its placeholder. A part that fails is
+retried once, then skipped rather than losing the site; credits falls back to
+markup built straight from the facts, since attribution is pure data.
+
+Eight calls in series became three waves. Four concurrent rather than seven is
+bounded by a free key's tokens-per-minute, not its request rate: every part
+carries the plan and the facts as input.
 
 Sections share one language toggle without knowing about each other because
 every visible element carries `data-uz` and `data-en` itself; the shell's

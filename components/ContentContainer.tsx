@@ -15,6 +15,7 @@ import {
   stitchSection,
 } from '@/lib/explainerPrompts';
 import {
+  FACTS_FROM_PAPER_PROMPT,
   JSON_ONLY_INSTRUCTION,
   PAPER_RESPONSE_SCHEMA,
   SPEC_FROM_PAPER_PROMPT,
@@ -60,13 +61,13 @@ type LoadingState = 'loading-spec' | 'loading-code' | 'ready' | 'error';
 const TABS = ['app', 'spec'] as const;
 
 /**
- * Sections generated at the same time.
+ * Parts of the site generated at the same time.
  *
  * Bounded by the key's tokens-per-minute rather than its request rate: each
- * section carries the plan, the facts and the shell as input, so six at once
- * can trip a free tier's token ceiling where three comfortably does not.
+ * part carries the plan and the facts as input, so all seven at once can trip
+ * a free tier's token ceiling where four comfortably does not.
  */
-const SECTION_CONCURRENCY = 3;
+const PART_CONCURRENCY = 4;
 
 export default function ContentContainer({
   source,
@@ -119,81 +120,111 @@ export default function ContentContainer({
    * retrieval tool, and tools do not combine reliably with a response schema
    * -- so that one asks for JSON in words and leans on the tolerant parser.
    */
-  const screeningRequest = useCallback(() => {
-    if (source.kind === 'video') {
+  const sourceRequest = useCallback(
+    (prompt: string, schema: unknown | null) => {
+      if (source.kind === 'video') {
+        return {
+          prompt,
+          attachments: [videoPart(source.url)],
+          config: schema
+            ? {responseMimeType: 'application/json', responseSchema: schema as never}
+            : {},
+        };
+      }
+
+      if (source.via === 'file') {
+        return {
+          prompt,
+          attachments: [filePart(source.mimeType, source.base64)],
+          config: schema
+            ? {responseMimeType: 'application/json', responseSchema: schema as never}
+            : {},
+        };
+      }
+
+      // The URL path needs the retrieval tool, and tools do not combine
+      // reliably with a response schema, so it states the shape in words.
       return {
-        prompt: SPEC_FROM_VIDEO_PROMPT,
-        attachments: [videoPart(source.url)],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: SPEC_RESPONSE_SCHEMA as never,
-        },
+        prompt:
+          prompt +
+          paperUrlInstruction(
+            source.candidates?.length
+              ? source.candidates
+              : expandPaperUrl(source.url),
+          ) +
+          (schema ? JSON_ONLY_INSTRUCTION : ''),
+        attachments: [],
+        config: {tools: [{urlContext: {}}]},
       };
-    }
+    },
+    [source],
+  );
 
-    if (source.via === 'file') {
-      return {
-        prompt: SPEC_FROM_PAPER_PROMPT,
-        attachments: [filePart(source.mimeType, source.base64)],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: PAPER_RESPONSE_SCHEMA as never,
-        },
-      };
-    }
-
-    return {
-      prompt:
-        SPEC_FROM_PAPER_PROMPT +
-        paperUrlInstruction(
-          source.candidates?.length
-            ? source.candidates
-            : expandPaperUrl(source.url),
-        ) +
-        JSON_ONLY_INSTRUCTION,
-      attachments: [],
-      config: {tools: [{urlContext: {}}]},
-    };
-  }, [source]);
-
+  /**
+   * Read the source once, twice over.
+   *
+   * The plan and the data layer are asked for separately and at the same
+   * time. Together they were the slowest response in the pipeline -- a
+   * verdict, a plan, two summaries, an identity, a section list and a
+   * thousand lines of tables in one output. Apart, they cost a second read
+   * and halve the wait.
+   */
   const generateSpecFromSource = useCallback(async () => {
     const models = await resolveModels(apiKey!);
     const chain = [
       models.spec,
       ...models.chain.filter((id) => id !== models.spec),
     ];
-    const request = screeningRequest();
 
-    const response = await acrossModels(
-      chain,
-      (modelName) =>
-        generateText({
-          apiKey: apiKey!,
-          modelName,
-          prompt: request.prompt,
-          attachments: request.attachments,
-          config: request.config,
-        }),
-      {
-        onSwitch: (nextModel) => setNotice(`${t.switchingModel}: ${nextModel}`),
-        onWait: (waitMs) =>
-          setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
-      },
-    );
+    const hooks = {
+      onSwitch: (nextModel: string) =>
+        setNotice(`${t.switchingModel}: ${nextModel}`),
+      onWait: (waitMs: number) =>
+        setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
+    };
 
-    const screening = parseJSON(response) as Screening;
+    const ask = (prompt: string, schema: unknown | null) => {
+      const request = sourceRequest(prompt, schema);
+      return acrossModels(
+        chain,
+        (modelName) =>
+          generateText({
+            apiKey: apiKey!,
+            modelName,
+            prompt: request.prompt,
+            attachments: request.attachments,
+            config: request.config,
+          }),
+        hooks,
+      );
+    };
+
+    const wantsFacts = source.kind === 'paper';
+
+    const [planText, factsText] = await Promise.all([
+      ask(
+        source.kind === 'video' ? SPEC_FROM_VIDEO_PROMPT : SPEC_FROM_PAPER_PROMPT,
+        source.kind === 'video' ? SPEC_RESPONSE_SCHEMA : PAPER_RESPONSE_SCHEMA,
+      ),
+      wantsFacts
+        ? ask(FACTS_FROM_PAPER_PROMPT, null).catch((err) => {
+            // A site without its data layer is thin, not broken.
+            console.warn('Facts extraction failed:', err);
+            return '';
+          })
+        : Promise.resolve(''),
+    ]);
+
+    const screening = parseJSON(planText) as Screening;
     console.info('Screening:', screening);
 
     // Throws VideoRejectedError when the source breaks one of the guards.
     assertUsable(screening, source.kind);
 
-    // Extracted numbers drive every later visual, so they are kept verbatim.
-    factsRef.current = screening.facts ?? '';
+    factsRef.current = factsText || screening.facts || '';
     identityRef.current = screening.identity ?? '';
-    // Sections named after this paper, not after a template.
     planRef.current = planSections(screening.sections);
 
-    // The summary is ready long before the app is, so it fills the wait.
     setSummary({
       uz: screening.summaryUz,
       en: screening.summaryEn,
@@ -201,7 +232,7 @@ export default function ContentContainer({
     });
 
     return screening.spec;
-  }, [apiKey, source, screeningRequest, t.switchingModel, t.allBusy]);
+  }, [apiKey, source, sourceRequest, t.switchingModel, t.allBusy]);
 
   /** One call against the best model the key can reach. */
   const runOnBestModel = useCallback(
@@ -235,70 +266,81 @@ export default function ContentContainer({
   );
 
   /**
-   * Explainer sites are written in parts, and the parts are written at once.
+   * Explainer sites are written in parts, and every part at once.
    *
-   * One generation has one output budget, and a whole site does not fit in it.
-   * But the sections only depend on the shell, never on each other, so writing
-   * them one after another was spending eight calls' worth of latency on work
-   * that could overlap. Three at a time rather than all six: the limit is the
-   * key's tokens-per-minute, not its patience.
+   * One generation has one output budget and a whole site does not fit in it.
+   * The sections used to wait for the shell so they could reuse its CSS
+   * classes -- but the styling is Tailwind now, so the vocabulary comes from
+   * the brief rather than from the shell, and nothing has to wait for anything
+   * else. The shell is simply one more job in the same pool.
    */
   const generateExplainer = useCallback(
     async (baseSpec: string) => {
       const facts = factsRef.current;
+      const identity = identityRef.current;
       const sections = planRef.current.length
         ? planRef.current
         : planSections(null);
-      const total = sections.length + 1;
 
-      setNotice(`${t.buildingPart} 1/${total}`);
-      const shell = parseHTML(
-        await runOnBestModel(
-          buildShellPrompt(
-            baseSpec,
-            facts,
-            lang,
-            sections,
-            identityRef.current,
-          ),
-        ),
-      );
+      type Job = {kind: 'shell'} | {kind: 'section'; index: number};
+      const jobs: Job[] = [
+        {kind: 'shell'},
+        ...sections.map((_, index) => ({kind: 'section' as const, index})),
+      ];
 
+      const total = jobs.length;
+      let shell = '';
       const written: (string | null)[] = new Array(sections.length).fill(null);
       let done = 0;
       let next = 0;
 
-      const buildOne = async (index: number) => {
-        const section = sections[index];
-        const prompt = buildSectionPrompt(section, baseSpec, facts, shell);
+      setNotice(`${t.buildingPart} 1/${total}`);
 
-        // One retry before giving up. Silently skipping cost a real explainer
-        // its credits section, which is where the authors and the citation
-        // live -- the worst part of a research page to lose.
-        for (let attempt = 0; attempt < 2; attempt++) {
+      // Two attempts each. Silently skipping once cost a real explainer its
+      // credits section, where the authors and the citation live.
+      const attempt = async (prompt: string, stream: boolean) => {
+        for (let tries = 0; tries < 2; tries++) {
           try {
-            return parseHTML(await runOnBestModel(prompt, false));
+            return parseHTML(await runOnBestModel(prompt, stream));
           } catch (err) {
-            console.warn(
-              `Section "${section.key}" failed (attempt ${attempt + 1}):`,
-              err,
-            );
+            console.warn(`Part failed (attempt ${tries + 1}):`, err);
           }
         }
         return null;
       };
 
       const worker = async () => {
-        for (let index = next++; index < sections.length; index = next++) {
-          written[index] = await buildOne(index);
+        for (let i = next++; i < jobs.length; i = next++) {
+          const job = jobs[i];
+
+          if (job.kind === 'shell') {
+            shell =
+              (await attempt(
+                buildShellPrompt(baseSpec, facts, lang, sections, identity),
+                true,
+              )) ?? '';
+          } else {
+            written[job.index] = await attempt(
+              buildSectionPrompt(
+                sections[job.index],
+                baseSpec,
+                facts,
+                identity,
+              ),
+              false,
+            );
+          }
+
           done += 1;
-          setNotice(`${t.buildingPart} ${done + 1}/${total}`);
+          setNotice(`${t.buildingPart} ${Math.min(done + 1, total)}/${total}`);
         }
       };
 
       await Promise.all(
-        Array.from({length: Math.min(SECTION_CONCURRENCY, sections.length)}, worker),
+        Array.from({length: Math.min(PART_CONCURRENCY, jobs.length)}, worker),
       );
+
+      if (!shell) throw new Error('The site shell could not be written.');
 
       let assembled = shell;
       sections.forEach((section, index) => {
@@ -307,7 +349,11 @@ export default function ContentContainer({
           assembled = stitchSection(assembled, section.key, html);
         } else if (section.key === 'credits') {
           // Attribution is pure data, so it never needs a model to survive.
-          assembled = stitchSection(assembled, section.key, creditsFromFacts(facts));
+          assembled = stitchSection(
+            assembled,
+            section.key,
+            creditsFromFacts(facts),
+          );
         }
       });
 

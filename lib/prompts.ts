@@ -205,20 +205,6 @@ FIRST, screen the publication provided (attached as a file, or at the URL given 
 - "title": the publication's title, as printed.
 - "summaryEn": two or three sentences, in English, telling a reader what the explainer you are about to design will show them and what they will be able to try in it. Address the reader directly. No jargon, no mention of specs or code.
 - "summaryUz": the same summary in natural Latin-script Uzbek, using the characters oʻ and gʻ (U+02BB) rather than a plain apostrophe. Not a literal translation -- write it as an Uzbek speaker would.
-- "facts": a JSON object, given as a STRING, that is the complete data layer for the site. Everything built later is computed from this and nothing else, so it decides how good the result can be. Include:
-    * "meta": title, journal, volume and pages, year, all dates given (received, accepted, published), DOI and its URL, institution, ethics approval, funding, and any accession or registration identifiers.
-    * "authors": an array of every author with name, role or contribution, institution, department and email where the paper prints them.
-    * "metrics": the headline numbers, each with a label, the value, its unit, and what it means.
-    * "tables": every table that matters, each with a name, its column headers, and ALL of its rows as arrays of strings. Do not summarise a table -- reproduce it.
-    * "records": if the paper reports per-subject, per-sample or per-timepoint data, reproduce those individual rows in full with every field. A cohort of sixteen patients is sixteen objects, not a count. This is what allows a figure to be explored rather than merely displayed.
-    * "statistics": any correlation, p-value, confidence interval or effect size, each with what was compared and the exact reported value.
-    * "steps": if the paper describes a procedure, method or pipeline, its ordered stages with names and descriptions.
-    * "findings" and "limitations": the paper's own claims and its own stated caveats, as arrays of sentences.
-  SCALE MATTERS MORE THAN BREVITY HERE. In the reference build this data layer runs to over a thousand lines: twenty-eight genetic loci each carrying nineteen fields, every PheWAS outcome, every randomisation estimate, every author. Aim for that completeness. A record with three fields produces a figure with nothing to explore; a record with fifteen produces one worth opening. Extract every field the paper prints for every row it prints, and prefer a long, exhaustive facts object over a tidy summary.
-
-  Use the paper's exact values and units. Never round, never estimate, never invent a figure to fill a gap. If the paper does not report something, omit the field rather than guessing.
-- "identity": a JSON object, as a STRING, giving the site its own identity rather than a generic one: "name" (a short product-like name for this explainer, e.g. "ReproGenetics & Pregnancy Loss" or "AlphaQubit Decoder"), "tagline" (six to ten words describing what the reader can do here), "accent" (a hex colour drawn from the subject matter -- deep crimson for haematology, teal for marine biology, indigo for astronomy -- that works as a dark accent on a cream page), and "ctaLabel" (what the button linking to the paper should say, e.g. "Read Preprint").
-- "sections": an array of FOUR to SIX section objects, named after THIS paper's own subject matter, never after a generic template. Each has "key" (a short lowercase slug), "titleEn", "titleUz", "instrument" (which kind of interactive figure it carries, chosen from: manhattan-plot, forest-plot, scatter-regression, ideogram, simulator, filterable-table, comparison-matrix, timeline, stepped-procedure, network-diagram, 3d-scene, annotated-figure), and "brief" (two or three sentences saying exactly what this section shows and what the reader can manipulate). Good section names look like "Chromosomes & Loci", "UK Biobank PheWAS", "Mendelian Randomization", "PGS Simulator" -- they name the science. Bad ones look like "Overview", "Problem", "Results", "Discussion" -- they name a template. Order them as a narrative: what the problem is, how it was attacked, what came out, what it means.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. If you reached only an abstract or a landing page, say so with "unclear" rather than inventing the contents of a paper you did not read. A confident explanation of a paper you could not see is far worse than an honest refusal.
@@ -347,3 +333,29 @@ REVISION: Make this far more visual. Replace explanatory prose with diagrams, an
 
 REVISION: Restructure this as active recall. Build it around questions the learner answers and gets immediate feedback on, with a visible score, rather than around exposition they read.`,
 };
+
+/**
+ * The data layer, extracted on its own.
+ *
+ * This used to ride along with the plan in one call, which made that call the
+ * slowest thing in the pipeline: a verdict, a plan, two summaries, an identity,
+ * a section list and a thousand lines of tables all in one response. Asking
+ * separately costs a second read of the paper and buys back half the wait,
+ * because the two calls now run at the same time.
+ */
+export const FACTS_FROM_PAPER_PROMPT = `Read the attached publication (or the one at the URL below) and extract its complete data layer. Return ONLY a JSON object, with no prose, no markdown fence and no commentary.
+
+Everything the explainer site shows will be computed from this object, so its completeness decides how good the result can be. Include:
+
+- "meta": title, journal, volume and pages, year, every date given (received, accepted, published), DOI and its URL, institution, ethics approval, funding, and any accession or registration identifiers.
+- "authors": every author, with name, role or contribution, institution, department and email where the paper prints them.
+- "metrics": the headline numbers, each with a label, the value, its unit, and what it means.
+- "tables": every table that matters, each with a name, its column headers, and ALL of its rows as arrays of strings. Do not summarise a table -- reproduce it.
+- "records": if the paper reports per-subject, per-sample, per-locus or per-timepoint data, reproduce those rows in full with every field the paper prints. A cohort of sixteen patients is sixteen objects, not a count. This is what allows a figure to be explored rather than merely displayed.
+- "statistics": every correlation, p-value, confidence interval, odds ratio and effect size, each with what was compared and the exact reported value.
+- "steps": if the paper describes a procedure, method or pipeline, its ordered stages with names and descriptions.
+- "findings" and "limitations": the paper's own claims and its own stated caveats, as arrays of sentences.
+
+SCALE MATTERS MORE THAN BREVITY. In a reference build this object ran past a thousand lines: twenty-eight loci each carrying nineteen fields, every outcome, every estimate, every author. Aim for that. A record with three fields produces a figure with nothing to explore; a record with fifteen produces one worth opening.
+
+Use the paper's exact values and units. Never round, never estimate, never invent a figure to fill a gap. If the paper does not report something, omit the field rather than guessing.`;
