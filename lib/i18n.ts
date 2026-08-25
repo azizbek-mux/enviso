@@ -117,6 +117,8 @@ const en = {
   busyRetry: 'Google is busy right now. Waiting, then trying again',
   switchingModel: 'That model is busy. Switching to another one',
   allBusy: 'All models are busy. Trying again in',
+  quotaWait: 'Your key hit its per-minute limit. Waiting',
+  seconds: 's',
   busyGaveUp:
     'Google is overloaded at the moment. This is temporary - wait a few minutes and press Try again.',
 
@@ -253,6 +255,8 @@ const uz: typeof en = {
   busyRetry: 'Google hozir band. Kutib, qayta urinilmoqda',
   switchingModel: 'Bu model band. Boshqasiga oʻtilmoqda',
   allBusy: 'Barcha modellar band. Qayta urinish:',
+  quotaWait: 'Kalitingiz daqiqalik limitga yetdi. Kutilmoqda:',
+  seconds: 's',
   busyGaveUp:
     'Google serverlari hozir juda band. Bu vaqtinchalik - bir necha daqiqa kutib, "Qayta urinish" tugmasini bosing.',
 

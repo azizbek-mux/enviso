@@ -187,6 +187,42 @@ export async function runDiagnostics(
         : link.message,
   });
 
+  // 5. How fast a real generation is, and whether the key survives two at
+  //    once. Guessing at these is what turned a slow pipeline into a stalled
+  //    one, so they are measured rather than assumed.
+  const started = Date.now();
+  const sized = await probe(apiKey, videoModel, [
+    {
+      text: 'Write a single self-contained HTML page of roughly 150 lines: a heading, three cards and a small inline SVG bar chart. Return only the HTML.',
+    },
+  ]);
+  const elapsed = Date.now() - started;
+  push({
+    label: `Generation speed: ${videoModel}`,
+    status: sized.http === 200 ? 'ok' : statusFromHttp(sized.http, sized.message),
+    http: sized.http,
+    detail:
+      sized.http === 200
+        ? `${(elapsed / 1000).toFixed(1)}s for ~${Math.round((sized.text ?? '').length / 1024)}KB`
+        : `${(elapsed / 1000).toFixed(1)}s then ${sized.message}`,
+  });
+
+  const burst = await Promise.all([
+    probe(apiKey, videoModel, [{text: 'Say OK'}]),
+    probe(apiKey, videoModel, [{text: 'Say OK'}]),
+    probe(apiKey, videoModel, [{text: 'Say OK'}]),
+  ]);
+  const limited = burst.filter((b) => b.http === 429).length;
+  const okCount = burst.filter((b) => b.http === 200).length;
+  push({
+    label: 'Three requests at once',
+    status: limited > 0 ? 'quota' : okCount === 3 ? 'ok' : 'fail',
+    detail:
+      limited > 0
+        ? `${limited} of 3 rate-limited -- this key cannot run parts in parallel`
+        : `${okCount} of 3 succeeded`,
+  });
+
   return finish(checks, models);
 }
 

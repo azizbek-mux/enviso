@@ -63,11 +63,12 @@ const TABS = ['app', 'spec'] as const;
 /**
  * Parts of the site generated at the same time.
  *
- * Bounded by the key's tokens-per-minute rather than its request rate: each
- * part carries the plan and the facts as input, so all seven at once can trip
- * a free tier's token ceiling where four comfortably does not.
+ * Bounded by the key's rate limit, which belongs to the key and not to any
+ * model: every part in flight spends the same per-minute allowance, so going
+ * wide caused the limit it was meant to outrun. Two is the point where a free
+ * key keeps up.
  */
-const PART_CONCURRENCY = 4;
+const PART_CONCURRENCY = 2;
 
 export default function ContentContainer({
   source,
@@ -180,7 +181,9 @@ export default function ContentContainer({
       onSwitch: (nextModel: string) =>
         setNotice(`${t.switchingModel}: ${nextModel}`),
       onWait: (waitMs: number) =>
-        setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
+        setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}${t.seconds}`),
+      onQuota: (waitMs: number) =>
+        setNotice(`${t.quotaWait} ${Math.round(waitMs / 1000)}${t.seconds}`),
     };
 
     const ask = (
@@ -238,7 +241,15 @@ export default function ContentContainer({
     });
 
     return screening.spec;
-  }, [apiKey, source, sourceRequest, t.switchingModel, t.allBusy]);
+  }, [
+    apiKey,
+    source,
+    sourceRequest,
+    t.switchingModel,
+    t.allBusy,
+    t.quotaWait,
+    t.seconds,
+  ]);
 
   /** One call against the best model the key can reach. */
   const runOnBestModel = useCallback(
@@ -264,11 +275,13 @@ export default function ContentContainer({
             setNotice(`${t.switchingModel}: ${nextModel}`);
           },
           onWait: (waitMs) =>
-            setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
+            setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}${t.seconds}`),
+          onQuota: (waitMs) =>
+            setNotice(`${t.quotaWait} ${Math.round(waitMs / 1000)}${t.seconds}`),
         },
       );
     },
-    [apiKey, t.switchingModel, t.allBusy],
+    [apiKey, t.switchingModel, t.allBusy, t.quotaWait, t.seconds],
   );
 
   /**

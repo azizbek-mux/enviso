@@ -257,7 +257,12 @@ export interface AcrossModelsHooks {
   onSwitch?: (nextModel: string, previous: Error) => void;
   /** Every model refused; pausing before another pass. */
   onWait?: (waitMs: number, round: number, of: number) => void;
+  /** The key's own rate limit was hit, which no other model can relieve. */
+  onQuota?: (waitMs: number) => void;
 }
+
+/** Backoff after the key's own rate limit, which switching cannot cure. */
+const QUOTA_BACKOFF_MS = [12000, 30000];
 
 function isRecoverable(error: unknown) {
   return (
@@ -283,6 +288,7 @@ export async function acrossModels<T>(
   hooks: AcrossModelsHooks = {},
 ): Promise<T> {
   let lastError: Error = new Error('No usable Gemini model found');
+  let quotaHits = 0;
 
   for (let round = 0; round < ROUND_DELAYS_MS.length; round++) {
     const wait = ROUND_DELAYS_MS[round];
@@ -300,6 +306,22 @@ export async function acrossModels<T>(
       } catch (error) {
         if (!isRecoverable(error)) throw error;
         lastError = error as Error;
+
+        /*
+         * A rate limit belongs to the key, not to the model, so walking the
+         * chain cannot relieve it -- it only spends the remaining allowance
+         * faster. Wait instead, then retry the same model.
+         */
+        if (error instanceof QuotaError) {
+          const backoff = QUOTA_BACKOFF_MS[Math.min(quotaHits, QUOTA_BACKOFF_MS.length - 1)];
+          quotaHits += 1;
+          if (quotaHits <= QUOTA_BACKOFF_MS.length) {
+            hooks.onQuota?.(backoff);
+            await new Promise((resolve) => setTimeout(resolve, backoff));
+            i -= 1; // try this same model again
+            continue;
+          }
+        }
 
         const next = chain[i + 1];
         if (next) hooks.onSwitch?.(next, lastError);
@@ -419,8 +441,12 @@ export async function generateText(options: GenerateOptions): Promise<string> {
     checkCandidate(response);
     return response.text ?? '';
   } catch (error) {
-    console.error(`Gemini call failed on ${modelName}:`, error);
-    throw classify(error);
+    const classified = classify(error);
+    console.error(
+      `Gemini call failed on ${modelName}: ${classified.constructor.name} -`,
+      classified.message,
+    );
+    throw classified;
   }
 }
 
@@ -469,8 +495,12 @@ export async function generateTextStream(
     if (!accumulated) throw new Error('The model returned no output.');
     return accumulated;
   } catch (error) {
-    console.error(`Gemini stream failed on ${modelName}:`, error);
-    throw classify(error);
+    const classified = classify(error);
+    console.error(
+      `Gemini stream failed on ${modelName}: ${classified.constructor.name} -`,
+      classified.message,
+    );
+    throw classified;
   }
 }
 
