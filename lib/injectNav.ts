@@ -30,30 +30,6 @@ const NAV_FIX = `
     return fixed ? header.getBoundingClientRect().height + 16 : 24;
   }
 
-  // Options, placeholders, titles and aria labels are not covered by a
-  // textContent swap, so a select could sit in Uzbek while English was
-  // chosen. Extend whatever the page already installed rather than replacing
-  // it, so both handlers agree.
-  var original = window.applyLanguage;
-  window.applyLanguage = function (lang) {
-    if (typeof original === 'function') original(lang);
-
-    document.querySelectorAll('option[data-uz][data-en]').forEach(function (el) {
-      var next = el.getAttribute('data-' + lang);
-      if (next !== null) el.textContent = next;
-    });
-    ['placeholder', 'title', 'aria-label', 'value'].forEach(function (attr) {
-      var key = 'data-' + attr + '-';
-      document.querySelectorAll('[' + key + 'uz][' + key + 'en]').forEach(
-        function (el) {
-          var next = el.getAttribute(key + lang);
-          if (next !== null) el.setAttribute(attr, next);
-        },
-      );
-    });
-    window.__lang = lang;
-  };
-
   document.addEventListener('click', function (event) {
     var link = event.target && event.target.closest
       ? event.target.closest('a[href^="#"]')

@@ -32,7 +32,7 @@ const en = {
   contentPlaceholder: 'Your learning app will appear here',
   introStep1: 'Paste a link to a short YouTube lesson',
   introStep2: 'Gemini watches it and designs an app around its main idea',
-  introStep3: 'Practise with it, in Uzbek or English',
+  introStep3: 'Practise with the app it builds',
   invalidUrl: 'That does not look like a YouTube link',
   checkingVideo: 'Checking the video...',
 
@@ -75,7 +75,7 @@ const en = {
   paperPlaceholderText: 'Your explainer will appear here',
   paperStep1: 'Paste a link to a paper, or upload its PDF',
   paperStep2: 'Gemini reads it and designs an interactive explainer',
-  paperStep3: 'Explore the mechanism, in Uzbek or English',
+  paperStep3: 'Explore the mechanism it makes visible',
 
   tabApp: 'App',
   tabSpec: 'About',
@@ -171,7 +171,7 @@ const uz: typeof en = {
   contentPlaceholder: 'Oʻquv ilovangiz shu yerda paydo boʻladi',
   introStep1: 'Qisqa YouTube darsiga havola joylashtiring',
   introStep2: 'Gemini uni koʻrib, asosiy gʻoya boʻyicha ilova loyihalaydi',
-  introStep3: 'Oʻzbek yoki ingliz tilida mashq qiling',
+  introStep3: 'U yasagan ilova bilan mashq qiling',
   invalidUrl: 'Bu YouTube havolasiga oʻxshamaydi',
   checkingVideo: 'Video tekshirilmoqda...',
 
@@ -214,7 +214,7 @@ const uz: typeof en = {
   paperPlaceholderText: 'Tushuntiruvchingiz shu yerda paydo boʻladi',
   paperStep1: 'Maqolaga havola joylashtiring yoki uning PDF faylini yuklang',
   paperStep2: 'Gemini uni oʻqib, interaktiv tushuntiruvchi loyihalaydi',
-  paperStep3: 'Mexanizmni oʻzbek yoki ingliz tilida oʻrganing',
+  paperStep3: 'U koʻrsatgan mexanizmni oʻrganing',
 
   tabApp: 'Ilova',
   tabSpec: 'Haqida',

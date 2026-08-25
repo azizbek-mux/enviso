@@ -2,7 +2,7 @@
 
 A Telegram Mini App that turns source material into an interactive learning
 app. Gemini reads the source, writes a plan, then writes a single-file web app
-from that plan — **in Uzbek and English, with a toggle built into the result**.
+from that plan.
 
 Two sections, one API key:
 
@@ -30,53 +30,17 @@ adds their own free [Google AI Studio](https://aistudio.google.com/apikey) key
 once; it lives in their private Telegram cloud storage and is sent only to
 Google. Your quota is never spent on someone else's video.
 
-## Bilingual output
+## Language
 
-The interface ships in Uzbek and English (`lib/i18n.ts`), starting in Uzbek
-unless the Telegram client is set to English.
+The **interface** is Uzbek and English, starting in Uzbek unless the Telegram
+client is set to English (`lib/i18n.ts`).
 
-The **generated apps** are bilingual too, which is enforced in
-`buildSpecAddendum()` in [lib/prompts.ts](lib/prompts.ts). Every generated app
-must:
-
-- carry every user-facing string in both languages, authored up front in one
-  `T = { uz: {...}, en: {...} }` object — no runtime translation service;
-- expose an `OʻZ` / `EN` toggle that switches instantly without losing the
-  learner's progress;
-- use proper Latin-script Uzbek with `oʻ` / `gʻ` (U+02BB), never a plain
-  apostrophe and never Cyrillic;
-- give the English term in parentheses on first use for technical vocabulary;
-- survive the length difference between the two languages without breaking
-  layout.
-
-## What the app refuses
-
-Not every video makes a good lesson, and a confident learning app built on a
-misheard one is worse for a student than being told no.
-
-| Guard | Rule | Applies to |
-|---|---|---|
-| Length | over 30 minutes | video, checked in the browser before any Gemini call |
-| Language | anything but English or Russian | both |
-| Music | songs and performances | video |
-| Audio | unclear speech, or none at all | video |
-| Readability | only an abstract or paywall reachable | research |
-| Kind | not a paper, preprint or thesis | research |
-| Substance | nothing specific to practise | both |
-
-Length is checked client-side with YouTube's iframe player, which needs no API
-key — watching an hour of video is the most expensive request the app can make,
-so refusing it afterwards would already have spent the user's quota. The model
-also reports duration as a backstop, for live streams and any video whose
-length the player cannot read.
-
-The other guards ride along with the call that was already watching the video:
-screening and spec-writing share one request, so a rejection costs no more than
-it has to. Uzbek is excluded on purpose — Gemini understands it far less
-reliably than English or Russian.
-
-Rejections are presented as answers rather than errors: no red, no retry
-button, and a sentence saying what to pick instead.
+**Generated output is English only.** It used to be bilingual, with every
+string carried twice behind a toggle — and that cost more than it bought.
+Doubling every label halves the room a figure has, doubles the text a single
+generation must produce, and constrains every layout decision to whichever
+language runs longer. The reference builds are English, and matching their
+quality meant matching that.
 
 ## The house style, and where it came from
 
@@ -128,10 +92,6 @@ markup built straight from the facts, since attribution is pure data.
 Eight calls in series became three waves. Four concurrent rather than seven is
 bounded by a free key's tokens-per-minute, not its request rate: every part
 carries the plan and the facts as input.
-
-Sections share one language toggle without knowing about each other because
-every visible element carries `data-uz` and `data-en` itself; the shell's
-`applyLanguage()` walks the whole document.
 
 ## How generation works
 

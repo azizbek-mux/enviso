@@ -335,7 +335,7 @@ export default function ContentContainer({
           if (job.kind === 'shell') {
             shell =
               (await attempt(
-                buildShellPrompt(baseSpec, facts, lang, sections, identity),
+                buildShellPrompt(baseSpec, facts, sections, identity),
                 true,
               )) ?? '';
           } else {
@@ -385,7 +385,7 @@ export default function ContentContainer({
     async (baseSpec: string) => {
       if (source.kind === 'paper') return generateExplainer(baseSpec);
 
-      const prompt = baseSpec + buildSpecAddendum(currentPalette(), lang, 'video');
+      const prompt = baseSpec + buildSpecAddendum(currentPalette(), 'video');
       return parseHTML(await runOnBestModel(prompt));
     },
     [source.kind, lang, runOnBestModel, generateExplainer],

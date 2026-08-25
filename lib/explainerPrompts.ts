@@ -5,7 +5,6 @@
 
 import {HOUSE_STYLE} from '@/lib/houseStyle';
 import {REFERENCE_SECTION} from '@/lib/referenceExample';
-import type {Lang} from '@/lib/i18n';
 import {CODE_REGION_CLOSER, CODE_REGION_OPENER} from '@/lib/prompts';
 
 /**
@@ -87,22 +86,6 @@ export function sectionMarker(key: string): string {
 
 const NEWLINE = String.fromCharCode(10);
 
-/**
- * The contract that lets independently written parts share one toggle.
- *
- * Each element carries both languages itself, so no section has to know what
- * any other section named its strings.
- */
-const BILINGUAL_CONTRACT = `BILINGUAL TEXT -- follow this exactly, it is what lets the parts fit together.
-Every element whose text the reader sees carries BOTH languages as attributes:
-
-  <h2 data-uz="Muammo" data-en="The problem">Muammo</h2>
-
-- Put data-uz and data-en only on an element whose entire content is that one piece of text. Never on an element containing other elements, because switching language replaces its text and would delete them.
-- Uzbek must be natural, modern, Latin-script Uzbek using the characters o' and g' written as U+02BB, never a plain apostrophe and never Cyrillic. For a technical term with no settled Uzbek word, give the Uzbek then the English in parentheses on first use.
-- Text that is not an element's own content still has to switch. For a <select>, put data-uz and data-en on each <option>. For an attribute, use data-placeholder-uz / data-placeholder-en, and the same pattern for title and aria-label. For a label a script writes at runtime, read window.__lang and write the matching string rather than a fixed one.
-- Do not define your own language dictionary or toggle. The shell provides both.`;
-
 const SANDBOX_CONTRACT = `RUNTIME -- a sandboxed iframe on a phone.
 - Do NOT use localStorage, sessionStorage, cookies or IndexedDB. Access throws and breaks the page.
 - Do NOT fetch anything. The only remote assets are the ones the shell already declares: Tailwind, Google Fonts, and three.js through its importmap. Add no others.
@@ -118,7 +101,6 @@ const SANDBOX_CONTRACT = `RUNTIME -- a sandboxed iframe on a phone.
 export function buildShellPrompt(
   spec: string,
   facts: string,
-  uiLang: Lang,
   sections: PlannedSection[],
   identity: string,
 ): string {
@@ -127,29 +109,11 @@ export function buildShellPrompt(
     .join(NEWLINE);
 
   const navPlan = sections
-    .map(
-      (section) =>
-        `    - #${section.key} -- "${section.titleUz ?? section.key}" / "${section.titleEn ?? section.key}"`,
-    )
+    .map((section) => `    - #${section.key} -- "${section.titleEn ?? section.key}"`)
     .join(NEWLINE);
 
-  const languageScript = [
+  const pageScript = [
     '  <script>',
-    '  function applyLanguage(lang){',
-    '    document.documentElement.lang = lang;',
-    "    document.querySelectorAll('[data-uz][data-en]').forEach(function(el){",
-    "      var next = el.getAttribute('data-' + lang);",
-    '      if (next !== null) el.textContent = next;',
-    '    });',
-    "    document.querySelectorAll('[data-lang-btn]').forEach(function(b){",
-    "      b.classList.toggle('active', b.getAttribute('data-lang-btn') === lang);",
-    '    });',
-    '  }',
-    "  document.addEventListener('click', function(e){",
-    "    var btn = e.target.closest('[data-lang-btn]');",
-    "    if (btn) applyLanguage(btn.getAttribute('data-lang-btn'));",
-    '  });',
-    '',
     '  // In-page links must never navigate: this document is rendered through',
     '  // srcdoc, where a fragment navigation discards the page and leaves a',
     '  // blank frame. Scroll programmatically instead.',
@@ -167,7 +131,9 @@ export function buildShellPrompt(
     "    window.scrollTo({top: top, behavior: 'smooth'});",
     '  });',
     '',
-    `  applyLanguage('${uiLang}');`,
+    "  window.addEventListener('scroll', function(){",
+    "    document.body.classList.toggle('scrolled', window.scrollY > 50);",
+    '  });',
     '  </script>',
   ].join(NEWLINE);
 
@@ -200,7 +166,7 @@ PRODUCE a complete, valid HTML document with exactly this skeleton, which is the
 
 ${navPlan}
 
-   - Right: a solid accent-filled rounded-full button linking to the publication, labelled from the identity, with a small external-link SVG. Beside it a compact O'Z / EN toggle whose buttons carry data-lang-btn="uz" and data-lang-btn="en".
+   - Right: a solid accent-filled rounded-full button linking to the publication, labelled from the identity, with a small external-link SVG.
    - Below the bar on mobile, collapse the links behind a menu button.
 4. A HERO, py-20 or taller, containing in order: a small rounded-full outlined pill carrying the identity's tagline in the accent colour; the paper's full title as an h1 in font-serif at text-5xl md:text-7xl lg:text-8xl with leading-[0.95]; a standfirst paragraph of one or two sentences in text-lg text-stone-600 max-w-3xl saying concretely what was done and found; then a grid of three or four METRIC TILES, each a white rounded-2xl bordered card with an uppercase text-[10px] tracking-widest label, the figure large in font-serif, and a one-line caption beneath.
 5. A <main> containing these markers, each alone on its own line, in this order and spelled exactly. Put NOTHING between them:
@@ -208,9 +174,9 @@ ${navPlan}
 ${markers}
 
 6. A dark bg-nobel-dark footer carrying the site name in font-serif, the full citation, the licence, and the DOI link.
-7. One <script> at the end of the body containing the language machinery, the scroll handler and the header shrink, and nothing else:
+7. One <script> at the end of the body containing the scroll handler and the header shrink, and nothing else:
 
-${languageScript}
+${pageScript}
 
 ${HOUSE_STYLE}
 
@@ -261,8 +227,6 @@ ${HOUSE_STYLE}
 A WORKED EXAMPLE. This is a real section from the reference build, in the exact idiom you must use: Tailwind classes, inline SVG drawn from a data array by arithmetic, plain JavaScript in an IIFE, statistics set in mono with real superscripts, cards tinted by meaning, chips that drive the figure, and a detail panel that updates on selection. Match this level of construction. Do not copy its subject matter -- copy how it is built.
 
 ${REFERENCE_SECTION}
-
-${BILINGUAL_CONTRACT}
 
 ${SANDBOX_CONTRACT}
 

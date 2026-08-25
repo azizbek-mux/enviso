@@ -66,12 +66,12 @@ export function creditsFromFacts(facts: string): string {
   const link = doi
     ? `<p><a href="${escapeHtml(
         doi.startsWith('http') ? doi : `https://doi.org/${doi}`,
-      )}" target="_blank" rel="noopener" data-uz="Maqolani ochish" data-en="Open the publication">Maqolani ochish</a></p>`
+      )}" target="_blank" rel="noopener">Open the publication</a></p>`
     : '';
 
   return `<section id="credits">
-  <p class="eyebrow" data-uz="MUALLIFLAR" data-en="CREDITS">MUALLIFLAR</p>
-  <h2 data-uz="Mualliflar va manba" data-en="Authors and citation">Mualliflar va manba</h2>
+  <p class="eyebrow">CREDITS</p>
+  <h2>Authors and citation</h2>
   <div class="rule"></div>
   ${authorCards ? `<ul class="author-list">${authorCards}</ul>` : ''}
   ${rows ? `<table class="meta-table"><tbody>${rows}</tbody></table>` : ''}

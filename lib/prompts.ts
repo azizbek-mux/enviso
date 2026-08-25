@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {Lang} from '@/lib/i18n';
 
 export const SPEC_FROM_VIDEO_PROMPT = `You are a pedagogist and product designer with deep expertise in crafting engaging learning experiences via interactive web apps.
 
@@ -16,7 +15,6 @@ FIRST, screen the attached video and report on it honestly:
 - "teachable": true only if this video contains a specific idea a learner could practise with an interactive app.
 - "title": a short title for what this teaches, in English.
 - "summaryEn": two or three sentences, in English, telling a learner what the app you are about to design will teach them and what they will do in it. Address the learner directly. No jargon, no mention of specs or code.
-- "summaryUz": the same summary in natural Latin-script Uzbek, using the characters oʻ and gʻ (U+02BB) rather than a plain apostrophe. Not a literal translation -- write it as an Uzbek speaker would.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. Saying no to an unsuitable video is far more useful than producing a confident learning app built on something you could not properly hear or understand.
@@ -62,7 +60,6 @@ export const SPEC_RESPONSE_SCHEMA = {
     teachable: {type: 'boolean'},
     title: {type: 'string'},
     summaryEn: {type: 'string'},
-    summaryUz: {type: 'string'},
     reason: {type: 'string'},
     spec: {
       type: 'string',
@@ -96,16 +93,13 @@ export interface Palette {
  *
  * Three things make this different from the stock single-language prompt:
  *
- *  1. Bilingual output. Every user-facing string ships in both Uzbek and
- *     English behind an in-app toggle, so one generation serves both audiences.
- *  2. Telegram Mini App constraints. The result renders inside a sandboxed
+ *  1. Telegram Mini App constraints. The result renders inside a sandboxed
  *     iframe on a phone: no web storage, no network, touch-sized controls.
- *  3. Theme matching. The live Telegram palette is injected so the generated
+ *  2. Theme matching. The live Telegram palette is injected so the generated
  *     app does not flash white inside a dark Telegram.
  */
 export function buildSpecAddendum(
   palette: Palette,
-  uiLang: Lang,
   kind: 'video' | 'paper' = 'video',
 ): string {
   const paper = kind === 'paper';
@@ -129,17 +123,9 @@ export function buildSpecAddendum(
 
 IMPLEMENTATION REQUIREMENTS
 
-Provide the code as a single, self-contained HTML document. All styles and scripts must be inline. In the result, encase the code between "${CODE_REGION_OPENER}" and "${CODE_REGION_CLOSER}" for easy parsing.
+LANGUAGE: write every user-facing string in English.
 
-BILINGUAL INTERFACE (this is a hard requirement, not a nice-to-have)
-- Every single piece of user-facing text must be available in BOTH Uzbek and English: titles, labels, buttons, instructions, hints, feedback messages, tooltips, error text, and any explanatory prose.
-- Do not translate at runtime and do not call any translation service. Author both languages by hand and hold them in one JavaScript object, for example: const T = { uz: { title: "..." }, en: { title: "..." } }.
-- Give every text node a stable identifier (such as a data-i18n attribute) and write one applyLanguage(lang) function that rewrites all of them. Switching must be instant, with no page reload and no loss of the learner's current progress or state.
-- Put a compact language toggle showing "OʻZ" and "EN" in a corner that is always reachable. Make the active language visually obvious.
-- The starting language must be "${uiLang}".
-- Uzbek must be natural, modern, Latin-script Uzbek. Use the correct characters oʻ and gʻ (U+02BB), never a plain apostrophe. Do not use Cyrillic.
-- For scientific or technical terms with no settled Uzbek equivalent, give the Uzbek term followed by the English in parentheses on first use, e.g. "fotosintez (photosynthesis)".
-- Design the layout so it does not break when text length changes between languages: Uzbek strings are often noticeably longer than their English counterparts. Avoid fixed-width buttons and single-line assumptions.
+Provide the code as a single, self-contained HTML document. All styles and scripts must be inline. In the result, encase the code between "${CODE_REGION_OPENER}" and "${CODE_REGION_CLOSER}" for easy parsing.
 
 RUNTIME ENVIRONMENT (a sandboxed iframe inside a Telegram Mini App on a phone)
 - Mobile-first. Assume a viewport about 360px wide with a touch screen. It must also scale up gracefully on desktop.
@@ -204,7 +190,6 @@ FIRST, screen the publication provided (attached as a file, or at the URL given 
 - "teachable": true only if there is a specific, concrete mechanism, method or finding that an interactive explanation could make clearer.
 - "title": the publication's title, as printed.
 - "summaryEn": two or three sentences, in English, telling a reader what the explainer you are about to design will show them and what they will be able to try in it. Address the reader directly. No jargon, no mention of specs or code.
-- "summaryUz": the same summary in natural Latin-script Uzbek, using the characters oʻ and gʻ (U+02BB) rather than a plain apostrophe. Not a literal translation -- write it as an Uzbek speaker would.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. If you reached only an abstract or a landing page, say so with "unclear" rather than inventing the contents of a paper you did not read. A confident explanation of a paper you could not see is far worse than an honest refusal.
@@ -271,7 +256,6 @@ export const PAPER_RESPONSE_SCHEMA = {
     teachable: {type: 'boolean'},
     title: {type: 'string'},
     summaryEn: {type: 'string'},
-    summaryUz: {type: 'string'},
     identity: {type: 'string'},
     sections: {
       type: 'array',
@@ -307,7 +291,7 @@ export const PAPER_RESPONSE_SCHEMA = {
  */
 export const JSON_ONLY_INSTRUCTION = `
 
-Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "summaryEn" (string), "summaryUz" (string), "identity" (string containing JSON), "sections" (array of objects with key, titleEn, titleUz, instrument, brief), "facts" (string containing JSON), "reason" (string), "spec" (string).`;
+Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "summaryEn" (string), "identity" (string containing JSON), "sections" (array of objects with key, titleEn, titleUz, instrument, brief), "facts" (string containing JSON), "reason" (string), "spec" (string).`;
 
 /* -------------------------------------------------------------------------- */
 /* Variations                                                                 */

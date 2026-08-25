@@ -23,14 +23,11 @@ export const REFERENCE_SECTION = String.raw`<section id="phewas" class="py-20 bo
     <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-stone-500">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
-      <span data-uz="FENOM BO‘YICHA ASSOTSIATSIYA • 1-RASM"
-            data-en="PHENOME-WIDE ASSOCIATION STUDY • FIGURE 1">PHENOME-WIDE ASSOCIATION STUDY • FIGURE 1</span>
+      <span>PHENOME-WIDE ASSOCIATION STUDY • FIGURE 1</span>
     </div>
 
     <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-      <h2 class="font-serif text-3xl md:text-5xl text-stone-900 leading-tight"
-          data-uz="30-SNP homiladorlik yo‘qotilishi PGS PheWAS (N = 459,009)"
-          data-en="30-SNP Pregnancy Loss PGS PheWAS (N = 459,009)">30-SNP Pregnancy Loss PGS PheWAS (N = 459,009)</h2>
+      <h2 class="font-serif text-3xl md:text-5xl text-stone-900 leading-tight">30-SNP Pregnancy Loss PGS PheWAS (N = 459,009)</h2>
 
       <!-- Callout: a threshold, a caveat or a definition -->
       <div class="flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 text-rose-900">
@@ -62,8 +59,7 @@ export const REFERENCE_SECTION = String.raw`<section id="phewas" class="py-20 bo
 
     <!-- Filter chips drive the plot below -->
     <div class="flex flex-wrap items-center gap-2 pt-2">
-      <span class="text-xs font-bold uppercase tracking-wider text-stone-500 mr-2"
-            data-uz="TOIFA:" data-en="CATEGORY:">CATEGORY:</span>
+      <span class="text-xs font-bold uppercase tracking-wider text-stone-500 mr-2">CATEGORY:</span>
       <button data-cat="ALL" class="cat-chip px-3 py-1 rounded-lg text-xs font-semibold bg-stone-900 text-white">ALL</button>
       <button data-cat="Digestive" class="cat-chip px-3 py-1 rounded-lg text-xs font-semibold bg-stone-100 text-stone-600">Digestive</button>
       <button data-cat="Respiratory" class="cat-chip px-3 py-1 rounded-lg text-xs font-semibold bg-stone-100 text-stone-600">Respiratory</button>
@@ -133,13 +129,12 @@ export const REFERENCE_SECTION = String.raw`<section id="phewas" class="py-20 bo
         plot.appendChild(dot);
       });
 
-      var lang = window.__lang || 'uz';
       detail.innerHTML =
         '<div class="bg-white border border-stone-200 rounded-2xl p-5">' +
           '<span class="text-[10px] font-bold uppercase tracking-wider text-stone-500">' + selected.category + '</span>' +
           '<h3 class="font-serif text-2xl text-stone-900 mt-1">' + selected.name + '</h3>' +
           '<p class="font-mono text-sm text-stone-700 mt-2">OR ' + selected.or.toFixed(2) +
-            ' · ' + selected.cases.toLocaleString() + ' ' + (lang === 'uz' ? 'holat' : 'cases') + '</p>' +
+            ' · ' + selected.cases.toLocaleString() + ' cases</p>' +
         '</div>';
     }
 
