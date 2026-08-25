@@ -6,7 +6,9 @@ export default defineConfig({
   // (https://user.github.io/repo/) without hardcoding the repo name.
   base: './',
   server: {
-    port: 3000,
+    // Honours an assigned PORT so a second instance can run alongside one
+    // already serving on 3000; falls back to 3000 for the normal case.
+    port: Number(process.env.PORT) || 3000,
     host: '0.0.0.0',
   },
   plugins: [react()],
