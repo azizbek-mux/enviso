@@ -48,7 +48,7 @@ const en = {
   rejectNotEducational:
     'There is no specific idea here to build a lesson around. Pick a video that explains something.',
   rejectUnreadable:
-    'Only an abstract or a paywall was reachable, so the full text could not be read. Upload the PDF instead.',
+    'Only an abstract or a paywall was reachable, so the full text could not be read. Try the publisher’s own article link instead of a DOI, or upload the PDF.',
   rejectNotResearch:
     'This does not look like a research publication. Try a paper, preprint, or thesis.',
 
@@ -175,7 +175,7 @@ const uz: typeof en = {
   rejectNotEducational:
     'Bu yerda dars quriladigan aniq gʻoya yoʻq. Biror narsani tushuntiradigan video tanlang.',
   rejectUnreadable:
-    'Faqat annotatsiya yoki toʻlov devori ochildi, toʻliq matn oʻqilmadi. Buning oʻrniga PDF yuklang.',
+    'Faqat annotatsiya yoki toʻlov devori ochildi, toʻliq matn oʻqilmadi. DOI oʻrniga nashriyotning maqola havolasini bering yoki PDF yuklang.',
   rejectNotResearch:
     'Bu ilmiy nashrga oʻxshamaydi. Maqola, preprint yoki dissertatsiya tanlang.',
 

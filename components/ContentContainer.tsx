@@ -25,7 +25,7 @@ import {
 } from '@/lib/screening';
 import {saveHistory} from '@/lib/history';
 import {shareLink} from '@/lib/deeplink';
-import type {Source} from '@/lib/source';
+import {expandPaperUrl, type Source} from '@/lib/source';
 import {currentPalette, haptic, notify, shareToChat} from '@/lib/telegram';
 import {
   OverloadedError,
@@ -122,7 +122,7 @@ export default function ContentContainer({
     return {
       prompt:
         SPEC_FROM_PAPER_PROMPT +
-        paperUrlInstruction(source.url) +
+        paperUrlInstruction(expandPaperUrl(source.url)) +
         JSON_ONLY_INSTRUCTION,
       attachments: [],
       config: {tools: [{urlContext: {}}]},

@@ -151,3 +151,71 @@ export function linkHintFor(value: string): LinkHint | null {
   }
   return null;
 }
+
+/* -------------------------------------------------------------------------- */
+/* DOI expansion                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** PLOS DOI suffixes map to their own journal sites. */
+const PLOS_JOURNALS: Record<string, string> = {
+  pone: 'plosone',
+  pbio: 'plosbiology',
+  pmed: 'plosmedicine',
+  pgen: 'plosgenetics',
+  pcbi: 'ploscompbiol',
+  ppat: 'plospathogens',
+  pntd: 'plosntds',
+};
+
+/**
+ * Turn a link into every address worth trying for the full text.
+ *
+ * A doi.org URL is a redirect, and the retrieval tool appears to read the
+ * redirect stub rather than following it -- which is why an open-access PLOS
+ * paper came back reported as paywalled. Handing over the publisher's own
+ * article URL as well removes the redirect from the path entirely.
+ *
+ * The original is always kept and always first; these are additions, not
+ * replacements, since a guess that misses costs nothing.
+ */
+export function expandPaperUrl(url: string): string[] {
+  const candidates = [url.trim()];
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch {
+    return candidates;
+  }
+
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+  if (host !== 'doi.org' && host !== 'dx.doi.org') return candidates;
+
+  const doi = decodeURIComponent(parsed.pathname.replace(/^\//, ''));
+
+  // PLOS: 10.1371/journal.pone.0298940 -> journals.plos.org/plosone/article?id=
+  const plos = doi.match(/^10\.1371\/journal\.([a-z]+)\./i);
+  if (plos) {
+    const journal = PLOS_JOURNALS[plos[1].toLowerCase()];
+    if (journal) {
+      candidates.push(
+        `https://journals.plos.org/${journal}/article?id=${doi}`,
+        `https://journals.plos.org/${journal}/article/file?id=${doi}&type=printable`,
+      );
+    }
+  }
+
+  // arXiv: 10.48550/arXiv.2404.01234 -> arxiv.org/abs/2404.01234
+  const arxiv = doi.match(/^10\.48550\/arxiv\.(.+)$/i);
+  if (arxiv) {
+    candidates.push(`https://arxiv.org/abs/${arxiv[1]}`);
+  }
+
+  // bioRxiv and medRxiv publish full text under the DOI path.
+  if (/^10\.1101\//.test(doi)) {
+    candidates.push(`https://www.biorxiv.org/content/${doi}v1.full`);
+    candidates.push(`https://www.medrxiv.org/content/${doi}v1.full`);
+  }
+
+  return [...new Set(candidates)];
+}

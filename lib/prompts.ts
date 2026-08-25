@@ -185,11 +185,28 @@ Aim for the feel of a well-made museum exhibit: serious about the science, gener
 
 Write the spec in English regardless of the publication's language. The spec is a build brief for a developer, not user-facing text.`;
 
-/** Appended when the source is a link rather than an uploaded file. */
-export function paperUrlInstruction(url: string): string {
+/**
+ * Appended when the source is a link rather than an uploaded file.
+ *
+ * More than one address may be offered for the same paper, because a DOI is a
+ * redirect and the retrieval tool reads what the redirect returns rather than
+ * where it points. Trying the publisher's own article URL alongside it is the
+ * difference between reading a paper and reporting it paywalled.
+ */
+const NEWLINE = String.fromCharCode(10);
+
+export function paperUrlInstruction(urls: string[]): string {
+  if (urls.length === 1) {
+    return `
+
+The publication is at this URL. Retrieve and read it before answering: ${urls[0]}`;
+  }
+
   return `
 
-The publication is at this URL. Retrieve and read it before answering: ${url}`;
+The publication can be reached at the addresses below. They are the same paper. Retrieve them and work from whichever gives you the full text; if the first is only a redirect, a landing page or an abstract, try the next before concluding that the full text is unavailable.
+
+${urls.map((url) => `- ${url}`).join(NEWLINE)}`;
 }
 
 /**
