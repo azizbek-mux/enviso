@@ -183,7 +183,11 @@ export default function ContentContainer({
         setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
     };
 
-    const ask = (prompt: string, schema: unknown | null) => {
+    const ask = (
+      prompt: string,
+      schema: unknown | null,
+      extra: Record<string, unknown> = {},
+    ) => {
       const request = sourceRequest(prompt, schema);
       return acrossModels(
         chain,
@@ -193,7 +197,7 @@ export default function ContentContainer({
             modelName,
             prompt: request.prompt,
             attachments: request.attachments,
-            config: request.config,
+            config: {...request.config, ...extra},
           }),
         hooks,
       );
@@ -207,7 +211,9 @@ export default function ContentContainer({
         source.kind === 'video' ? SPEC_RESPONSE_SCHEMA : PAPER_RESPONSE_SCHEMA,
       ),
       wantsFacts
-        ? ask(FACTS_FROM_PAPER_PROMPT, null).catch((err) => {
+        ? ask(FACTS_FROM_PAPER_PROMPT, null, {
+            thinkingConfig: {thinkingLevel: 'LOW' as never},
+          }).catch((err) => {
             // A site without its data layer is thin, not broken.
             console.warn('Facts extraction failed:', err);
             return '';
@@ -296,17 +302,16 @@ export default function ContentContainer({
 
       setNotice(`${t.buildingPart} 1/${total}`);
 
-      // Two attempts each. Silently skipping once cost a real explainer its
-      // credits section, where the authors and the citation live.
+      // One attempt here: runOnBestModel already walks five models over two
+      // sweeps, so retrying on top of that multiplied a slow failure into a
+      // wait nobody sits through. Credits has a data-built fallback instead.
       const attempt = async (prompt: string, stream: boolean) => {
-        for (let tries = 0; tries < 2; tries++) {
-          try {
-            return parseHTML(await runOnBestModel(prompt, stream));
-          } catch (err) {
-            console.warn(`Part failed (attempt ${tries + 1}):`, err);
-          }
+        try {
+          return parseHTML(await runOnBestModel(prompt, stream));
+        } catch (err) {
+          console.warn('Part failed:', err);
+          return null;
         }
-        return null;
       };
 
       const worker = async () => {

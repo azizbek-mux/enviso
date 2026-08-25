@@ -30,8 +30,12 @@ const FALLBACK_CODE_MODEL = 'gemini-3.6-flash';
  * The first pass has no delay at all. Measured against a real key, the newest
  * model returned 503 while the one directly behind it answered immediately --
  * so asking every model once beats waiting half a minute on the busiest one.
+ *
+ * Two passes, not three. Five models tried three times over is fifteen
+ * attempts, and when each attempt is a long generation that turns a busy spell
+ * into a wait longer than anyone will sit through.
  */
-const ROUND_DELAYS_MS = [0, 5000, 15000];
+const ROUND_DELAYS_MS = [0, 6000];
 
 /**
  * Enough alternates to outlast a busy spell, few enough to bound the wait.

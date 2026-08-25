@@ -356,6 +356,8 @@ Everything the explainer site shows will be computed from this object, so its co
 - "steps": if the paper describes a procedure, method or pipeline, its ordered stages with names and descriptions.
 - "findings" and "limitations": the paper's own claims and its own stated caveats, as arrays of sentences.
 
-SCALE MATTERS MORE THAN BREVITY. In a reference build this object ran past a thousand lines: twenty-eight loci each carrying nineteen fields, every outcome, every estimate, every author. Aim for that. A record with three fields produces a figure with nothing to explore; a record with fifteen produces one worth opening.
+COMPLETE, BUT COMPACT. Reproduce every row and every field the paper prints -- a cohort of sixteen is sixteen rows, a table of thirty loci is thirty rows -- but write the JSON densely: short keys, arrays of values rather than objects of named fields where a table has fixed columns, no indentation, and NO explanatory prose inside records. Description belongs in "findings", not repeated on every row. A row is data for a figure to compute from, not a paragraph.
+
+Keep the whole object under roughly 900 lines of dense JSON. If the paper has more data than fits, keep the tables and records the figures need and drop the least useful table, saying which in a "omitted" field. An object that never finishes being written is worth nothing.
 
 Use the paper's exact values and units. Never round, never estimate, never invent a figure to fill a gap. If the paper does not report something, omit the field rather than guessing.`;
