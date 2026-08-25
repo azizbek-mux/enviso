@@ -14,6 +14,10 @@ const AI_STUDIO_URL = 'https://aistudio.google.com/apikey';
 interface KeyGateProps {
   /** Rendered as a dismissable settings screen rather than a first-run gate. */
   onClose?: () => void;
+  /** Fired only after a key is accepted, so the caller can resume its work. */
+  onSaved?: () => void;
+  /** Shown when the user hit this on the way to generating something. */
+  pending?: boolean;
 }
 
 /**
@@ -23,11 +27,12 @@ interface KeyGateProps {
  * supplies their own free Google AI Studio key, which is kept in their private
  * Telegram cloud storage and sent only to Google.
  */
-export default function KeyGate({onClose}: KeyGateProps) {
+export default function KeyGate({onClose, onSaved, pending}: KeyGateProps) {
   const {t, apiKey, saveApiKey, clearApiKey} = useSettings();
   const [value, setValue] = useState('');
   const [checking, setChecking] = useState(false);
   const [rejected, setRejected] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const handleSave = async () => {
     const trimmed = value.trim();
@@ -49,7 +54,8 @@ export default function KeyGate({onClose}: KeyGateProps) {
     await saveApiKey(trimmed);
     notify('success');
     setValue('');
-    onClose?.();
+    if (onSaved) onSaved();
+    else onClose?.();
   };
 
   const handleRemove = async () => {
@@ -61,7 +67,7 @@ export default function KeyGate({onClose}: KeyGateProps) {
   return (
     <div className="key-gate">
       <div className="key-card">
-        <h2 className="key-title">{t.keyTitle}</h2>
+        <h2 className="key-title">{pending ? t.keyNeeded : t.keyTitle}</h2>
         <p className="hint key-intro">{t.keyIntro}</p>
 
         <ol className="key-steps">
@@ -123,7 +129,19 @@ export default function KeyGate({onClose}: KeyGateProps) {
           </div>
         )}
 
-        {apiKey && <Diagnostics />}
+        {apiKey &&
+          (showDiagnostics ? (
+            <Diagnostics />
+          ) : (
+            <button
+              className="button-ghost trouble-link"
+              onClick={() => {
+                haptic();
+                setShowDiagnostics(true);
+              }}>
+              {t.trouble}
+            </button>
+          ))}
       </div>
 
       <style>{`
@@ -184,6 +202,11 @@ export default function KeyGate({onClose}: KeyGateProps) {
 
         .key-privacy {
           line-height: 1.5;
+        }
+
+        .trouble-link {
+          align-self: flex-start;
+          padding-left: 0;
         }
 
         .key-existing {

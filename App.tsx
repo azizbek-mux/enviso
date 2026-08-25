@@ -25,6 +25,8 @@ export default function App() {
   const [reloadCounter, setReloadCounter] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [checkingVideo, setCheckingVideo] = useState(false);
+  // A URL that passed its checks but is waiting for the user to add a key.
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -58,16 +60,36 @@ export default function App() {
       return;
     }
 
-    setVideoUrl(value);
+    // The key is asked for here rather than on the first screen: by now the
+    // user has chosen a video and wants something, so the detour to AI Studio
+    // buys them a result instead of blocking one they have not imagined yet.
+    if (!apiKey) {
+      setPendingUrl(value);
+      return;
+    }
+
+    start(value);
+  };
+
+  const start = (url: string) => {
+    setPendingUrl(null);
+    setVideoUrl(url);
     // Bumping the key remounts ContentContainer, which restarts generation.
     setReloadCounter((c) => c + 1);
   };
 
+  const panelOpen = showSettings || pendingUrl !== null;
+
+  const closePanel = () => {
+    setShowSettings(false);
+    setPendingUrl(null);
+  };
+
   // Telegram's own back button is where a Mini App user looks first.
   useEffect(() => {
-    if (!showSettings) return;
-    return showBackButton(() => setShowSettings(false));
-  }, [showSettings]);
+    if (!panelOpen) return;
+    return showBackButton(closePanel);
+  }, [panelOpen]);
 
   const handleLanguage = (next: Lang) => {
     haptic();
@@ -92,30 +114,32 @@ export default function App() {
             </button>
           ))}
         </div>
-        {apiKey && (
+        {(apiKey || panelOpen) && (
           <button
             className="button-ghost settings-button"
-            aria-label={showSettings ? t.back : t.settings}
-            title={showSettings ? t.back : t.settings}
+            aria-label={panelOpen ? t.back : t.settings}
+            title={panelOpen ? t.back : t.settings}
             onClick={() => {
               haptic();
-              setShowSettings((open) => !open);
+              if (panelOpen) closePanel();
+              else setShowSettings(true);
             }}>
-            {showSettings ? '←' : '⚙'}
+            {panelOpen ? '←' : '⚙'}
           </button>
         )}
       </div>
     </header>
   );
 
-  // Nothing works without a key, so that is the whole screen until one exists.
-  if (!keyLoading && (!apiKey || showSettings)) {
+  if (!keyLoading && panelOpen) {
     return (
       <div className="app">
         {header}
         <KeyGate
-          onClose={apiKey ? () => setShowSettings(false) : undefined}
-          key={apiKey ? 'settings' : 'onboarding'}
+          key={pendingUrl ? 'gate' : 'settings'}
+          pending={pendingUrl !== null}
+          onClose={closePanel}
+          onSaved={pendingUrl ? () => start(pendingUrl) : undefined}
         />
         <Styles />
       </div>
@@ -181,7 +205,14 @@ export default function App() {
             onLoadingStateChange={setContentLoading}
           />
         ) : (
-          <div className="output-placeholder hint">{t.contentPlaceholder}</div>
+          <div className="output-placeholder">
+            <p className="hint">{t.contentPlaceholder}</p>
+            <ol className="intro-steps">
+              <li>{t.introStep1}</li>
+              <li>{t.introStep2}</li>
+              <li>{t.introStep3}</li>
+            </ol>
+          </div>
         )}
       </section>
 
@@ -314,9 +345,44 @@ function Styles() {
         border-radius: var(--radius);
         display: flex;
         flex: 1;
+        flex-direction: column;
+        gap: 1.25rem;
         justify-content: center;
         padding: 2rem 1.5rem;
         text-align: center;
+      }
+
+      .intro-steps {
+        counter-reset: step;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-width: 34ch;
+        text-align: left;
+      }
+
+      .intro-steps li {
+        align-items: center;
+        counter-increment: step;
+        display: flex;
+        font-size: 0.9rem;
+        gap: 0.65rem;
+        line-height: 1.4;
+      }
+
+      .intro-steps li::before {
+        align-items: center;
+        background: var(--color-surface);
+        border-radius: 50%;
+        color: var(--color-hint);
+        content: counter(step);
+        display: flex;
+        flex: 0 0 24px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        height: 24px;
+        justify-content: center;
+        width: 24px;
       }
 
       @media (min-width: 900px) {

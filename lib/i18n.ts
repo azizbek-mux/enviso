@@ -29,7 +29,10 @@ const en = {
   generating: 'Generating...',
   regenerate: 'Generate again',
   videoPlaceholder: 'Your video appears here',
-  contentPlaceholder: 'Paste a YouTube link or pick an example to begin',
+  contentPlaceholder: 'Your learning app will appear here',
+  introStep1: 'Paste a link to a short YouTube lesson',
+  introStep2: 'Gemini watches it and designs an app around its main idea',
+  introStep3: 'Practise with it, in Uzbek or English',
   invalidUrl: 'That does not look like a YouTube link',
   checkingVideo: 'Checking the video...',
 
@@ -69,7 +72,9 @@ const en = {
   closeFull: 'Close',
 
 
+  keyNeeded: 'One quick step first',
   keyTitle: 'Add your Gemini API key',
+  trouble: 'Having trouble?',
   keyIntro:
     'This app runs entirely on your device with no server, so it uses your own Google AI Studio key. The free tier is enough for everyday use.',
   keyStep1: 'Open Google AI Studio and create a key',
@@ -103,8 +108,10 @@ const uz: typeof en = {
   generating: 'Yaratilmoqda...',
   regenerate: 'Qaytadan yaratish',
   videoPlaceholder: 'Video shu yerda koʻrinadi',
-  contentPlaceholder:
-    'Boshlash uchun YouTube havolasini joylashtiring yoki namunani tanlang',
+  contentPlaceholder: 'Oʻquv ilovangiz shu yerda paydo boʻladi',
+  introStep1: 'Qisqa YouTube darsiga havola joylashtiring',
+  introStep2: 'Gemini uni koʻrib, asosiy gʻoya boʻyicha ilova loyihalaydi',
+  introStep3: 'Oʻzbek yoki ingliz tilida mashq qiling',
   invalidUrl: 'Bu YouTube havolasiga oʻxshamaydi',
   checkingVideo: 'Video tekshirilmoqda...',
 
@@ -145,7 +152,9 @@ const uz: typeof en = {
   closeFull: 'Yopish',
 
 
+  keyNeeded: 'Avval bitta qisqa qadam',
   keyTitle: 'Gemini API kalitingizni kiriting',
+  trouble: 'Muammo bormi?',
   keyIntro:
     'Bu ilova serversiz, faqat sizning qurilmangizda ishlaydi, shuning uchun oʻzingizning Google AI Studio kalitingizdan foydalanadi. Bepul limit kundalik foydalanish uchun yetarli.',
   keyStep1: 'Google AI Studio ni oching va kalit yarating',
