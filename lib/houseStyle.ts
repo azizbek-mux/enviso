@@ -98,11 +98,72 @@ export const HOUSE_INTERACTION_RULE = `INTERACTION
   algorithmic, a precise 2D figure is the better answer and a rotating object
   would be decoration.`;
 
+/**
+ * The instrument catalogue.
+ *
+ * The reference explainers do not write sections about a paper; they build
+ * named instruments from it -- a Manhattan plot with category filters, a
+ * polygenic score simulator, a chromosome ideogram, a randomisation matrix.
+ * Naming the instrument in the brief is what turns "a section about the
+ * results" into something the reader operates.
+ */
+export const INSTRUMENT_CATALOGUE = `INSTRUMENTS -- build the one named in the brief, from the facts.
+- manhattan-plot: significance against position or category, with a threshold
+  line drawn and labelled, points selectable to reveal their detail, and
+  category filter chips above it.
+- forest-plot: effect sizes with confidence intervals against a null line,
+  each row labelled, significant rows visually distinguished.
+- scatter-regression: two variables plotted with the reported line drawn, the
+  coefficient shown, and a control that moves a predicted value along it.
+- ideogram: positions marked along a linear or banded structure, hoverable and
+  selectable, with a detail panel.
+- simulator: sliders or inputs feeding the paper's own model, showing an
+  outcome recomputed live, with the assumptions stated.
+- filterable-table: the real rows, with search, sortable columns and filter
+  chips. Never truncate to a sample.
+- comparison-matrix: two or more groups against several measures at once, with
+  significance marked per cell.
+- timeline: ordered periods with their measures, selectable to expand.
+- stepped-procedure: numbered stages the reader advances through, one shown at
+  a time with its detail.
+- network-diagram: entities and their relationships, selectable.
+- 3d-scene: an orbitable three.js scene, lit and labelled. Only for genuinely
+  spatial subjects.
+- annotated-figure: a diagram with numbered callouts the reader steps through.
+
+Every instrument needs: an eyebrow naming it and its figure number, a serif
+title, the instrument itself, a caption saying what to notice, and a source
+line citing which table or figure of the paper it came from.`;
+
+export const HOUSE_DETAIL = `DETAIL THAT SEPARATES A PRODUCT FROM A DOCUMENT
+- IDENTITY: the header carries a small mark, the site's own short name in the
+  serif face, a one-line descriptor beneath it, and a solid accent-filled
+  button linking to the publication. Not a bare title.
+- SCIENTIFIC TYPOGRAPHY: render statistics properly. Exponents as real
+  superscripts (P = 9.15 x 10<sup>-7</sup>), effect sizes with their interval
+  in brackets, and all figures in a monospace face so columns align. A p-value
+  written as plain text reads like prose; set properly it reads like evidence.
+- SEMANTIC COLOUR: tint cards by meaning -- a significant result, a null
+  result, a caution -- using pale washes of a hue with a matching border.
+  Never colour for decoration alone.
+- ICONS: small inline SVG glyphs, drawn with strokes and currentColor, beside
+  eyebrows and in callouts. No icon fonts and no remote sprites.
+- CALLOUTS: a bordered, tinted box for a threshold, a caveat or a definition,
+  with an icon and a bold lead-in.
+- DENSITY: prose stays in a 65-72 character column, but figures, tables and
+  card grids use the full width, three or four across on a wide screen. A
+  desktop reader should never see a narrow ribbon of content in a sea of
+  margin.
+- A dark panel for funding, approvals and identifiers near the end, and a dark
+  footer carrying the full citation and licence.`;
+
 /** Everything above, in the order a builder needs it. */
 export const HOUSE_STYLE = [
   HOUSE_PALETTE,
   HOUSE_TYPOGRAPHY,
   HOUSE_IDIOMS,
+  HOUSE_DETAIL,
   HOUSE_DATA_RULE,
   HOUSE_INTERACTION_RULE,
-].join('\n\n');
+  INSTRUMENT_CATALOGUE,
+].join(String.fromCharCode(10, 10));

@@ -215,6 +215,8 @@ FIRST, screen the publication provided (attached as a file, or at the URL given 
     * "steps": if the paper describes a procedure, method or pipeline, its ordered stages with names and descriptions.
     * "findings" and "limitations": the paper's own claims and its own stated caveats, as arrays of sentences.
   Use the paper's exact values and units. Never round, never estimate, never invent a figure to fill a gap. If the paper does not report something, omit the field rather than guessing.
+- "identity": a JSON object, as a STRING, giving the site its own identity rather than a generic one: "name" (a short product-like name for this explainer, e.g. "ReproGenetics & Pregnancy Loss" or "AlphaQubit Decoder"), "tagline" (six to ten words describing what the reader can do here), "accent" (a hex colour drawn from the subject matter -- deep crimson for haematology, teal for marine biology, indigo for astronomy -- that works as a dark accent on a cream page), and "ctaLabel" (what the button linking to the paper should say, e.g. "Read Preprint").
+- "sections": an array of FOUR to SIX section objects, named after THIS paper's own subject matter, never after a generic template. Each has "key" (a short lowercase slug), "titleEn", "titleUz", "instrument" (which kind of interactive figure it carries, chosen from: manhattan-plot, forest-plot, scatter-regression, ideogram, simulator, filterable-table, comparison-matrix, timeline, stepped-procedure, network-diagram, 3d-scene, annotated-figure), and "brief" (two or three sentences saying exactly what this section shows and what the reader can manipulate). Good section names look like "Chromosomes & Loci", "UK Biobank PheWAS", "Mendelian Randomization", "PGS Simulator" -- they name the science. Bad ones look like "Overview", "Problem", "Results", "Discussion" -- they name a template. Order them as a narrative: what the problem is, how it was attacked, what came out, what it means.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. If you reached only an abstract or a landing page, say so with "unclear" rather than inventing the contents of a paper you did not read. A confident explanation of a paper you could not see is far worse than an honest refusal.
@@ -282,6 +284,21 @@ export const PAPER_RESPONSE_SCHEMA = {
     title: {type: 'string'},
     summaryEn: {type: 'string'},
     summaryUz: {type: 'string'},
+    identity: {type: 'string'},
+    sections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          key: {type: 'string'},
+          titleEn: {type: 'string'},
+          titleUz: {type: 'string'},
+          instrument: {type: 'string'},
+          brief: {type: 'string'},
+        },
+        required: ['key', 'titleEn', 'titleUz', 'instrument', 'brief'],
+      },
+    },
     facts: {
       type: 'string',
       description:
@@ -302,7 +319,7 @@ export const PAPER_RESPONSE_SCHEMA = {
  */
 export const JSON_ONLY_INSTRUCTION = `
 
-Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "summaryEn" (string), "summaryUz" (string), "facts" (string containing JSON), "reason" (string), "spec" (string).`;
+Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "summaryEn" (string), "summaryUz" (string), "identity" (string containing JSON), "sections" (array of objects with key, titleEn, titleUz, instrument, brief), "facts" (string containing JSON), "reason" (string), "spec" (string).`;
 
 /* -------------------------------------------------------------------------- */
 /* Variations                                                                 */

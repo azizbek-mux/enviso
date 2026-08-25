@@ -50,6 +50,16 @@ export interface Screening {
   summaryUz?: string;
   /** JSON string of the paper's metadata, numbers and tables. */
   facts?: string;
+  /** JSON string giving the site a name, tagline, accent and call to action. */
+  identity?: string;
+  /** Sections named after this paper's subject, not after a template. */
+  sections?: {
+    key: string;
+    titleEn: string;
+    titleUz: string;
+    instrument: string;
+    brief: string;
+  }[];
   reason?: string;
   spec: string;
 }

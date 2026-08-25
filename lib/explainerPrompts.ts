@@ -49,7 +49,35 @@ export const EXPLAINER_SECTIONS = [
   },
 ] as const;
 
-export type SectionKey = (typeof EXPLAINER_SECTIONS)[number]['key'];
+export interface PlannedSection {
+  key: string;
+  titleEn?: string;
+  titleUz?: string;
+  instrument?: string;
+  brief: string;
+}
+
+/**
+ * Use the sections the paper suggested, falling back to the generic plan.
+ *
+ * Generic names are the tell that a page came from a template: a reference
+ * explainer's navigation reads "Chromosomes & Loci" and "PGS Simulator",
+ * naming the science, where a template reads "Overview" and "Results". Credits
+ * is always appended, since attribution is not the model's to drop.
+ */
+export function planSections(
+  proposed?: PlannedSection[] | null,
+): PlannedSection[] {
+  const usable = (proposed ?? []).filter(
+    (section) => section?.key && section?.brief,
+  );
+  if (usable.length < 3) return [...EXPLAINER_SECTIONS];
+
+  const sections = usable.slice(0, 6);
+  return sections.some((section) => section.key === 'credits')
+    ? sections
+    : [...sections, EXPLAINER_SECTIONS[EXPLAINER_SECTIONS.length - 1]];
+}
 
 /** Placeholder the shell leaves behind for each section to be stitched into. */
 export function sectionMarker(key: string): string {
@@ -71,6 +99,7 @@ Every element whose text the reader sees carries BOTH languages as attributes:
 
 - Put data-uz and data-en only on an element whose entire content is that one piece of text. Never on an element containing other elements, because switching language replaces its text and would delete them.
 - Uzbek must be natural, modern, Latin-script Uzbek using the characters o' and g' written as U+02BB, never a plain apostrophe and never Cyrillic. For a technical term with no settled Uzbek word, give the Uzbek then the English in parentheses on first use.
+- Text that is not an element's own content still has to switch. For a <select>, put data-uz and data-en on each <option>. For an attribute, use data-placeholder-uz / data-placeholder-en, and the same pattern for title and aria-label. For a label a script writes at runtime, read window.__lang and write the matching string rather than a fixed one.
 - Do not define your own language dictionary or toggle. The shell provides both.`;
 
 const SANDBOX_CONTRACT = `RUNTIME -- a sandboxed iframe on a phone.
@@ -89,10 +118,19 @@ export function buildShellPrompt(
   spec: string,
   facts: string,
   uiLang: Lang,
+  sections: PlannedSection[],
+  identity: string,
 ): string {
-  const markers = EXPLAINER_SECTIONS.map(
-    (section) => `    ${sectionMarker(section.key)}`,
-  ).join(NEWLINE);
+  const markers = sections
+    .map((section) => `    ${sectionMarker(section.key)}`)
+    .join(NEWLINE);
+
+  const navPlan = sections
+    .map(
+      (section) =>
+        `    - #${section.key} -- "${section.titleUz ?? section.key}" / "${section.titleEn ?? section.key}"`,
+    )
+    .join(NEWLINE);
 
   const languageScript = [
     '  <script>',
@@ -142,6 +180,10 @@ THE PAPER'S FACTS, as extracted data. Use these exact values and never invent on
 
 ${facts}
 
+THE SITE'S IDENTITY -- its own name, tagline, accent colour and call to action. Use the accent colour in place of the default gold wherever the house style calls for an accent:
+
+${identity}
+
 PRODUCE a complete, valid HTML document containing:
 
 1. <!DOCTYPE html>, a head with charset and viewport, and a <title>.
@@ -152,7 +194,12 @@ PRODUCE a complete, valid HTML document containing:
   {"imports":{"three":"https://unpkg.com/three@0.181.1/build/three.module.js","three/addons/":"https://unpkg.com/three@0.181.1/examples/jsm/"}}
   </script>
 
-4. A slim sticky header with the paper's short title, in-page links to every section, and a compact language toggle showing O'Z and EN. The links point at the section ids below. Do NOT attach your own click handlers to them -- the script in point 8 already scrolls them, and a plain fragment navigation would blank the page in this runtime. Give the CSS "scroll-behavior: smooth" and a "scroll-padding-top" clear of the header.
+4. A slim sticky header carrying, on the left, a small inline-SVG mark and the site's own short name from the identity below with its tagline beneath, and on the right an accent-filled button linking to the publication. Between them, in-page links to every section using exactly these labels, each carrying both languages:
+
+${navPlan}
+
+   Do not rename them and do not fall back to generic words like Overview or Results. Also include a compact language toggle showing O'Z and EN.
+   The old instruction continues: in-page links to every section, and a compact language toggle showing O'Z and EN. The links point at the section ids below. Do NOT attach your own click handlers to them -- the script in point 8 already scrolls them, and a plain fragment navigation would blank the page in this runtime. Give the CSS "scroll-behavior: smooth" and a "scroll-padding-top" clear of the header.
 5. A HERO: the paper's full title, its authors, the journal and date, and one sentence stating what was achieved.
 6. A <main> containing these markers, each alone on its own line, in this order and spelled exactly. Put NOTHING between them -- they are placeholders that get replaced:
 
@@ -181,15 +228,17 @@ Return ONLY the HTML document, between ${CODE_REGION_OPENER} and ${CODE_REGION_C
  * invents its own class names produces a page that looks assembled from parts.
  */
 export function buildSectionPrompt(
-  section: {key: string; brief: string},
+  section: PlannedSection,
   spec: string,
   facts: string,
   shell: string,
 ): string {
   return `You are writing ONE section of a long-form explainer website about a research publication. The rest of the site already exists.
 
-THE SECTION TO WRITE -- "${section.key}":
+THE SECTION TO WRITE -- "${section.titleEn ?? section.key}" (id="${section.key}"):
 ${section.brief}
+
+THE INSTRUMENT it must carry: ${section.instrument ?? 'annotated-figure'}. Build that, from the facts, and make it operable.
 
 THE PLAN FOR THE WHOLE SITE, for context. Write only your own part of it:
 

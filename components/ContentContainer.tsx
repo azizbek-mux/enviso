@@ -8,10 +8,10 @@ import {parseHTML, parseJSON} from '@/lib/parse';
 import {RefusedIllustration} from '@/components/Illustrations';
 import {creditsFromFacts} from '@/lib/creditsFallback';
 import {
-  EXPLAINER_SECTIONS,
   buildSectionPrompt,
   buildShellPrompt,
   clearMarkers,
+  planSections,
   stitchSection,
 } from '@/lib/explainerPrompts';
 import {
@@ -69,6 +69,8 @@ export default function ContentContainer({
   const [spec, setSpec] = useState(restored?.spec ?? '');
   const [code, setCode] = useState(restored?.code ?? '');
   const factsRef = useRef('');
+  const identityRef = useRef('');
+  const planRef = useRef<ReturnType<typeof planSections>>([]);
   const [summary, setSummary] = useState<{uz?: string; en?: string; title?: string}>(
     restored
       ? {uz: restored.summaryUz, en: restored.summaryEn, title: restored.title}
@@ -174,6 +176,9 @@ export default function ContentContainer({
 
     // Extracted numbers drive every later visual, so they are kept verbatim.
     factsRef.current = screening.facts ?? '';
+    identityRef.current = screening.identity ?? '';
+    // Sections named after this paper, not after a template.
+    planRef.current = planSections(screening.sections);
 
     // The summary is ready long before the app is, so it fills the wait.
     setSummary({
@@ -226,17 +231,28 @@ export default function ContentContainer({
   const generateExplainer = useCallback(
     async (baseSpec: string) => {
       const facts = factsRef.current;
-      const total = EXPLAINER_SECTIONS.length + 1;
+      const sections = planRef.current.length
+        ? planRef.current
+        : planSections(null);
+      const total = sections.length + 1;
 
       setNotice(`${t.buildingPart} 1/${total}`);
       const shell = parseHTML(
-        await runOnBestModel(buildShellPrompt(baseSpec, facts, lang)),
+        await runOnBestModel(
+          buildShellPrompt(
+            baseSpec,
+            facts,
+            lang,
+            sections,
+            identityRef.current,
+          ),
+        ),
       );
 
       let document = shell;
 
-      for (let i = 0; i < EXPLAINER_SECTIONS.length; i++) {
-        const section = EXPLAINER_SECTIONS[i];
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
         setNotice(`${t.buildingPart} ${i + 2}/${total}`);
 
         const prompt = buildSectionPrompt(section, baseSpec, facts, shell);
