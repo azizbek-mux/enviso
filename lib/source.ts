@@ -67,3 +67,77 @@ export function looksLikeUrl(value: string): boolean {
     return false;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Link hints                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type LinkHint = 'paywall' | 'abstractOnly' | 'blocked' | 'doi';
+
+/**
+ * Hosts whose pages usually yield less than the full text.
+ *
+ * These are hints, never refusals: plenty of papers on these publishers are
+ * open access, and the app cannot know which until it has actually read one.
+ * The point is to warn before a generation is spent, not to decide.
+ */
+const HINTS: {hint: LinkHint; hosts: string[]}[] = [
+  {
+    hint: 'blocked',
+    hosts: ['researchgate.net', 'academia.edu', 'drive.google.com', 'dropbox.com'],
+  },
+  {
+    hint: 'abstractOnly',
+    hosts: ['pubmed.ncbi.nlm.nih.gov'],
+  },
+  {
+    hint: 'paywall',
+    hosts: [
+      'sciencedirect.com',
+      'elsevier.com',
+      'link.springer.com',
+      'springer.com',
+      'onlinelibrary.wiley.com',
+      'wiley.com',
+      'tandfonline.com',
+      'jstor.org',
+      'nejm.org',
+      'thelancet.com',
+      'jamanetwork.com',
+      'cell.com',
+      'ieeexplore.ieee.org',
+      'dl.acm.org',
+      'academic.oup.com',
+      'karger.com',
+      'thieme-connect.com',
+      'sagepub.com',
+    ],
+  },
+  {
+    hint: 'doi',
+    hosts: ['doi.org', 'dx.doi.org'],
+  },
+];
+
+/** What to warn about for a pasted link, or null when it looks fine. */
+export function linkHintFor(value: string): LinkHint | null {
+  const trimmed = value.trim();
+  if (!looksLikeUrl(trimmed)) return null;
+
+  let host: string;
+  try {
+    host = new URL(trimmed).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+
+  // A direct PDF is the thing itself, whoever is hosting it.
+  if (new URL(trimmed).pathname.toLowerCase().endsWith('.pdf')) return null;
+
+  for (const {hint, hosts} of HINTS) {
+    if (hosts.some((known) => host === known || host.endsWith(`.${known}`))) {
+      return hint;
+    }
+  }
+  return null;
+}

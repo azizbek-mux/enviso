@@ -9,9 +9,11 @@ import {useSettings} from '@/context';
 import {LANGUAGES, type Lang} from '@/lib/i18n';
 import {isTooLong} from '@/lib/screening';
 import {
+  type LinkHint,
   MAX_PDF_BYTES,
   type Source,
   type SourceKind,
+  linkHintFor,
   looksLikeUrl,
   readFileAsBase64,
 } from '@/lib/source';
@@ -29,6 +31,7 @@ export default function App() {
   const [mode, setMode] = useState<SourceKind>('video');
   const [source, setSource] = useState<Source | null>(null);
   const [pdf, setPdf] = useState<{name: string; mimeType: string; base64: string} | null>(null);
+  const [linkHint, setLinkHint] = useState<LinkHint | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [reloadCounter, setReloadCounter] = useState(0);
@@ -124,12 +127,22 @@ export default function App() {
 
     try {
       setPdf(await readFileAsBase64(file));
+      // The PDF supersedes the link, so its warning no longer applies.
+      setLinkHint(null);
       haptic();
     } catch (error) {
       console.error('Could not read the PDF:', error);
       setUrlError(t.paperTooBig);
     }
   };
+
+  const hintMessage = (hint: LinkHint) =>
+    ({
+      paywall: t.hintPaywall,
+      abstractOnly: t.hintAbstractOnly,
+      blocked: t.hintBlocked,
+      doi: t.hintDoi,
+    })[hint];
 
   const switchMode = (next: SourceKind) => {
     if (next === mode) return;
@@ -138,6 +151,7 @@ export default function App() {
     setSource(null);
     setPdf(null);
     setUrlError(null);
+    setLinkHint(null);
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -249,9 +263,16 @@ export default function App() {
             mode === 'video' ? t.inputPlaceholder : t.paperPlaceholder
           }
           disabled={busy}
-          onChange={() => setUrlError(null)}
+          onChange={(e) => {
+            setUrlError(null);
+            setLinkHint(
+              mode === 'paper' && !pdf ? linkHintFor(e.target.value) : null,
+            );
+          }}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
         />
+
+        {linkHint && <p className="field-warning">{hintMessage(linkHint)}</p>}
 
         {mode === 'paper' && (
           <div className="upload-row">
@@ -451,6 +472,16 @@ function Styles() {
       .field-error {
         color: var(--color-error);
         font-size: 0.85rem;
+      }
+
+      /* A warning, not a refusal: these links sometimes carry the full text. */
+      .field-warning {
+        background: var(--color-surface);
+        border-radius: 8px;
+        color: var(--color-hint);
+        font-size: 0.82rem;
+        line-height: 1.45;
+        padding: 0.55rem 0.7rem;
       }
 
       .generate {

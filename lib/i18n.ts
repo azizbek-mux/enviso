@@ -61,6 +61,14 @@ const en = {
   paperChosen: 'Selected',
   paperTooBig: 'That PDF is too large. The limit is 12 MB.',
   paperNeedInput: 'Add a link or choose a PDF first',
+  hintPaywall:
+    'This publisher often shows only an abstract. If it is not open access, upload the PDF instead.',
+  hintAbstractOnly:
+    'PubMed shows abstracts only. Use the PubMed Central full-text link, or upload the PDF.',
+  hintBlocked:
+    'This site blocks automated readers, so the paper cannot be fetched. Upload the PDF instead.',
+  hintDoi:
+    'A DOI leads to the publisher, so only the abstract may be readable. Upload the PDF if it is paywalled.',
   generatePaper: 'Build explainer',
   paperPlaceholderText: 'Your explainer will appear here',
   paperStep1: 'Paste a link to a paper, or upload its PDF',
@@ -160,6 +168,14 @@ const uz: typeof en = {
   paperChosen: 'Tanlandi',
   paperTooBig: 'Bu PDF juda katta. Chegara - 12 MB.',
   paperNeedInput: 'Avval havola qoʻshing yoki PDF tanlang',
+  hintPaywall:
+    'Bu nashriyot koʻpincha faqat annotatsiyani koʻrsatadi. Ochiq kirishda boʻlmasa, PDF yuklang.',
+  hintAbstractOnly:
+    'PubMed faqat annotatsiyani koʻrsatadi. PubMed Central toʻliq matn havolasidan foydalaning yoki PDF yuklang.',
+  hintBlocked:
+    'Bu sayt avtomatik oʻqishni bloklaydi, maqolani olib boʻlmaydi. PDF yuklang.',
+  hintDoi:
+    'DOI nashriyotga olib boradi, faqat annotatsiya oʻqilishi mumkin. Toʻlov devori boʻlsa, PDF yuklang.',
   generatePaper: 'Tushuntiruvchi yaratish',
   paperPlaceholderText: 'Tushuntiruvchingiz shu yerda paydo boʻladi',
   paperStep1: 'Maqolaga havola joylashtiring yoki uning PDF faylini yuklang',
