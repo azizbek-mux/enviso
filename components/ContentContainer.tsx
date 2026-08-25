@@ -30,6 +30,7 @@ import {
   VideoRejectedError,
   assertUsable,
 } from '@/lib/screening';
+import {type SaveOutcome, saveHtml, toFileName} from '@/lib/download';
 import {saveHistory} from '@/lib/history';
 import {shareLink} from '@/lib/deeplink';
 import {expandPaperUrl, type Source} from '@/lib/source';
@@ -76,6 +77,7 @@ export default function ContentContainer({
     restored ? 'ready' : 'loading-spec',
   );
   const [showPlan, setShowPlan] = useState(false);
+  const [saveState, setSaveState] = useState<SaveOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rejection, setRejection] = useState<VideoRejectedError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -384,6 +386,23 @@ export default function ContentContainer({
     }
   };
 
+  const handleSave = async () => {
+    if (!code) return;
+    haptic('medium');
+    const outcome = await saveHtml(toFileName(summaryTitle()), code);
+    setSaveState(outcome);
+    notify(outcome === 'failed' ? 'error' : 'success');
+  };
+
+  const saveLabel =
+    saveState === 'saved'
+      ? t.saved
+      : saveState === 'copied'
+        ? t.savedCopied
+        : saveState === 'failed'
+          ? t.saveFailedMsg
+          : t.save;
+
   const canShare = shareLink(source) !== null;
 
   const handleShare = () => {
@@ -605,11 +624,16 @@ export default function ContentContainer({
           )}
         </div>
 
-        {canShare && loadingState === 'ready' && (
+        {loadingState === 'ready' && (
           <div className="pane-actions">
-            <button className="button-primary" onClick={handleShare}>
-              {t.share}
+            <button className="button-primary" onClick={handleSave}>
+              {saveLabel}
             </button>
+            {canShare && (
+              <button className="button-secondary" onClick={handleShare}>
+                {t.share}
+              </button>
+            )}
           </div>
         )}
       </div>

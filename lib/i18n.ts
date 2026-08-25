@@ -88,6 +88,10 @@ const en = {
   variationVisual: 'More visual',
   variationQuiz: 'As a quiz',
 
+  save: 'Save as file',
+  saved: 'Saved',
+  savedCopied: 'Copied to clipboard instead',
+  saveFailedMsg: 'Could not save the file',
   share: 'Share',
   shareText: 'I made an interactive learning app from this:',
   saveFailed: 'Could not save this to your history',
@@ -217,6 +221,10 @@ const uz: typeof en = {
   variationVisual: 'Koʻproq vizual',
   variationQuiz: 'Test koʻrinishida',
 
+  save: 'Fayl qilib saqlash',
+  saved: 'Saqlandi',
+  savedCopied: 'Oʻrniga buferga nusxalandi',
+  saveFailedMsg: 'Faylni saqlab boʻlmadi',
   share: 'Ulashish',
   shareText: 'Men shundan interaktiv oʻquv ilova yasadim:',
   saveFailed: 'Buni tarixga saqlab boʻlmadi',
