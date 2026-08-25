@@ -8,7 +8,6 @@ import HistoryList from '@/components/HistoryList';
 import {EmptyIllustration, PaperIllustration} from '@/components/Illustrations';
 import KeyGate from '@/components/KeyGate';
 import {useSettings} from '@/context';
-import {LANGUAGES, type Lang} from '@/lib/i18n';
 import {lookupPaper} from '@/lib/paperLookup';
 import {isTooLong} from '@/lib/screening';
 import {
@@ -37,7 +36,7 @@ import {
 import {useEffect, useRef, useState} from 'react';
 
 export default function App() {
-  const {t, lang, setLang, apiKey, keyLoading} = useSettings();
+  const {t, apiKey, keyLoading} = useSettings();
 
   const [mode, setMode] = useState<SourceKind>('video');
   const [source, setSource] = useState<Source | null>(null);
@@ -269,11 +268,6 @@ export default function App() {
     return showBackButton(closePanel);
   }, [panelOpen]);
 
-  const handleLanguage = (next: Lang) => {
-    haptic();
-    setLang(next);
-  };
-
   const header = (
     <header className="header">
       <div className="brand">
@@ -281,17 +275,6 @@ export default function App() {
         <p className="hint subtitle">{t.subtitle}</p>
       </div>
       <div className="header-actions">
-        <div className="lang-toggle" role="group">
-          {LANGUAGES.map(({code, label}) => (
-            <button
-              key={code}
-              className={lang === code ? 'lang-option active' : 'lang-option'}
-              aria-pressed={lang === code}
-              onClick={() => handleLanguage(code)}>
-              {label}
-            </button>
-          ))}
-        </div>
         {(apiKey || panelOpen) && (
           <button
             className="button-ghost settings-button"
@@ -427,7 +410,16 @@ export default function App() {
           <ContentContainer
             key={reloadCounter}
             source={source}
-            restored={restored ?? undefined}
+            restored={
+              restored
+                ? {
+                    spec: restored.spec,
+                    code: restored.code,
+                    summary: restored.summary,
+                    title: restored.title,
+                  }
+                : undefined
+            }
             onLoadingStateChange={setContentLoading}
           />
         ) : (
@@ -500,28 +492,6 @@ function Styles() {
         display: flex;
         flex: 0 0 auto;
         gap: 0.35rem;
-      }
-
-      .lang-toggle {
-        background: var(--color-surface);
-        border-radius: 999px;
-        display: flex;
-        padding: 2px;
-      }
-
-      .lang-option {
-        background: transparent;
-        border-radius: 999px;
-        color: var(--color-hint);
-        font-size: 0.75rem;
-        font-weight: 700;
-        min-height: 30px;
-        padding: 0.2rem 0.55rem;
-      }
-
-      .lang-option.active {
-        background: var(--color-accent);
-        color: var(--color-accent-text);
       }
 
       .settings-button {

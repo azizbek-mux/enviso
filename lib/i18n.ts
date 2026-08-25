@@ -4,23 +4,15 @@
  */
 
 /**
- * Interface strings for the app shell itself.
+ * Interface strings.
  *
- * Note: the *generated* learning apps carry their own built-in UZ/EN toggle
- * (see lib/prompts.ts) -- this file only covers the surrounding chrome.
- *
- * Uzbek uses the standard Latin orthography with U+02BB (oʻ, gʻ) rather than a
- * plain apostrophe, so the text renders correctly in every Telegram client.
+ * English throughout, interface and generated output alike. The app used to
+ * carry both languages and require the same of everything it produced; that
+ * halved the room every figure had and doubled the text a generation had to
+ * write, for no gain the reader could see.
  */
 
-export type Lang = 'uz' | 'en';
-
-export const LANGUAGES: {code: Lang; label: string}[] = [
-  {code: 'uz', label: 'OʻZ'},
-  {code: 'en', label: 'EN'},
-];
-
-const en = {
+export const strings = {
   subtitle: 'Turn any YouTube video into an interactive learning app',
   inputLabel: 'Paste a YouTube link',
   inputPlaceholder: 'https://www.youtube.com/watch?v=...',
@@ -159,156 +151,4 @@ const en = {
   done: 'Done',
 };
 
-const uz: typeof en = {
-  subtitle: 'Istalgan YouTube videosini interaktiv oʻquv ilovasiga aylantiring',
-  inputLabel: 'YouTube havolasini joylashtiring',
-  inputPlaceholder: 'https://www.youtube.com/watch?v=...',
-  generate: 'Ilova yaratish',
-  validating: 'Havola tekshirilmoqda...',
-  generating: 'Yaratilmoqda...',
-  regenerate: 'Qaytadan yaratish',
-  videoPlaceholder: 'Video shu yerda koʻrinadi',
-  contentPlaceholder: 'Oʻquv ilovangiz shu yerda paydo boʻladi',
-  introStep1: 'Qisqa YouTube darsiga havola joylashtiring',
-  introStep2: 'Gemini uni koʻrib, asosiy gʻoya boʻyicha ilova loyihalaydi',
-  introStep3: 'U yasagan ilova bilan mashq qiling',
-  invalidUrl: 'Bu YouTube havolasiga oʻxshamaydi',
-  checkingVideo: 'Video tekshirilmoqda...',
-
-  rejectTitle: 'Bu video toʻgʻri kelmaydi',
-  rejectTitlePaper: 'Bu nashr toʻgʻri kelmaydi',
-  paperFound: 'Topildi',
-  rejectTooLong:
-    'Video 30 daqiqadan uzun. Iltimos, qisqaroqni tanlang - 3-15 daqiqa eng yaxshi natija beradi.',
-  rejectLanguage:
-    'Hozircha faqat ingliz va rus tilidagi videolar qoʻllab-quvvatlanadi. Bu video {lang} tilida koʻrinadi.',
-  rejectMusic:
-    'Bu darsdan koʻra musiqiy videoga oʻxshaydi. Biror gʻoyani tushuntiradigan video tanlang.',
-  rejectNoisy:
-    'Nutq juda noaniq, undan dars tayyorlab boʻlmaydi. Ovozi toza videoni tanlang.',
-  rejectNotEducational:
-    'Bu yerda dars quriladigan aniq gʻoya yoʻq. Biror narsani tushuntiradigan video tanlang.',
-  rejectUnreadable:
-    'Faqat annotatsiya yoki toʻlov devori ochildi, toʻliq matn oʻqilmadi. DOI oʻrniga nashriyotning maqola havolasini bering yoki PDF yuklang.',
-  rejectNotResearch:
-    'Bu ilmiy nashrga oʻxshamaydi. Maqola, preprint yoki dissertatsiya tanlang.',
-
-  modeVideo: 'Video',
-  modePaper: 'Maqola',
-  paperLabel: 'Nashrga havola',
-  paperPlaceholder: 'https://doi.org/... yoki arxiv.org/...',
-  paperOr: 'yoki',
-  paperUpload: 'PDF tanlash',
-  paperChosen: 'Tanlandi',
-  paperTooBig: 'Bu PDF juda katta. Chegara - 12 MB.',
-  paperNeedInput: 'Avval havola qoʻshing yoki PDF tanlang',
-  hintPaywall:
-    'Bu nashriyot koʻpincha faqat annotatsiyani koʻrsatadi. Ochiq kirishda boʻlmasa, PDF yuklang.',
-  hintAbstractOnly:
-    'PubMed faqat annotatsiyani koʻrsatadi. PubMed Central toʻliq matn havolasidan foydalaning yoki PDF yuklang.',
-  hintBlocked:
-    'Bu sayt avtomatik oʻqishni bloklaydi, maqolani olib boʻlmaydi. PDF yuklang.',
-  hintDoi:
-    'DOI nashriyotga olib boradi, faqat annotatsiya oʻqilishi mumkin. Toʻlov devori boʻlsa, PDF yuklang.',
-  generatePaper: 'Tushuntiruvchi yaratish',
-  paperPlaceholderText: 'Tushuntiruvchingiz shu yerda paydo boʻladi',
-  paperStep1: 'Maqolaga havola joylashtiring yoki uning PDF faylini yuklang',
-  paperStep2: 'Gemini uni oʻqib, interaktiv tushuntiruvchi loyihalaydi',
-  paperStep3: 'U koʻrsatgan mexanizmni oʻrganing',
-
-  tabApp: 'Ilova',
-  tabSpec: 'Haqida',
-  tabPlan: 'Dasturchi rejasi',
-  aboutHeading: 'Nimani oʻrganasiz',
-  buildingNow: 'Hozir yasalmoqda...',
-  buildingPart: 'Qism yozilmoqda:',
-  loadingSite: 'Maqola oʻqilmoqda va sayt rejalashtirilmoqda...',
-
-  variationsTitle: 'Toʻgʻri kelmadimi?',
-  variationSimpler: 'Soddaroq',
-  variationVisual: 'Koʻproq vizual',
-  variationQuiz: 'Test koʻrinishida',
-
-  save: 'Fayl qilib saqlash',
-  saved: 'Saqlandi',
-  savedCopied: 'Oʻrniga buferga nusxalandi',
-  saveFailedMsg: 'Faylni saqlab boʻlmadi',
-  share: 'Ulashish',
-  shareText: 'Men shundan interaktiv oʻquv ilova yasadim:',
-  saveFailed: 'Buni tarixga saqlab boʻlmadi',
-
-  historyTitle: 'Ilovalaringiz',
-  historyEmpty: 'Siz yasagan ilovalar shu yerda saqlanadi',
-  historyOpen: 'Ochish',
-  historyDelete: 'Oʻchirish',
-  historyClear: 'Hammasini tozalash',
-  historyVideo: 'Videodan',
-  historyPaper: 'Maqoladan',
-
-  loadingSpec: 'Video koʻrilmoqda va reja tuzilmoqda...',
-  loadingPaper: 'Maqola oʻqilmoqda va reja tuzilmoqda...',
-  loadingCode: 'Reja asosida ilova yasalmoqda...',
-  stillWorking: 'Hali ishlanmoqda - bu bir-ikki daqiqa oladi',
-
-  error: 'Nimadir xato ketdi',
-  retry: 'Qayta urinish',
-  quotaFallback:
-    'Katta model limiti tugadi, tezroq model bilan qayta urinilmoqda',
-  busyRetry: 'Google hozir band. Kutib, qayta urinilmoqda',
-  switchingModel: 'Bu model band. Boshqasiga oʻtilmoqda',
-  allBusy: 'Barcha modellar band. Qayta urinish:',
-  quotaWait: 'Kalitingiz daqiqalik limitga yetdi. Kutilmoqda:',
-  quotaDaily:
-    'Kalitingiz bugungi bepul limitni katta modellarda tugatdi. Limit AQSh Tinch okeani vaqti bilan yarim tunda yangilanadi. Shu paytgacha ilova yengilroq modeldan foydalanadi yoki kalitingizga toʻlovni ulashingiz mumkin.',
-  seconds: 's',
-  busyGaveUp:
-    'Google serverlari hozir juda band. Bu vaqtinchalik - bir necha daqiqa kutib, "Qayta urinish" tugmasini bosing.',
-
-  edit: 'Tahrirlash',
-  saveRegenerate: 'Saqlash va qayta yasash',
-  cancel: 'Bekor qilish',
-  copied: 'Nusxalandi',
-  openFull: 'Toʻliq ekran',
-  closeFull: 'Yopish',
-
-
-  keyNeeded: 'Avval bitta qisqa qadam',
-  keyTitle: 'Gemini API kalitingizni kiriting',
-  trouble: 'Muammo bormi?',
-  keyIntro:
-    'Bu ilova serversiz, faqat sizning qurilmangizda ishlaydi, shuning uchun oʻzingizning Google AI Studio kalitingizdan foydalanadi. Bepul limit kundalik foydalanish uchun yetarli.',
-  keyStep1: 'Google AI Studio ni oching va kalit yarating',
-  keyStep2: 'Kalitni quyiga joylashtiring',
-  keyGet: 'Bepul kalit olish',
-  keyPlaceholder: 'AIza...',
-  keySave: 'Kalitni saqlash',
-  keyChecking: 'Kalit tekshirilmoqda...',
-  keyBad: 'Kalit qabul qilinmadi. Tekshirib, qayta urinib koʻring.',
-  keyStored:
-    'Kalitingiz oʻzingizning Telegram bulut xotirangizda saqlanadi va Google dan boshqa hech qayerga yuborilmaydi.',
-  diagTitle: 'Kalitingiz nima qila olishini tekshirish',
-  diagIntro:
-    'Bir nechta kichik test soʻrovlari yuboradi va qaysi modellar ishlashini, qaysilari band ekanini va video kiritishga ruxsat borligini koʻrsatadi.',
-  diagRun: 'Tekshirish',
-  diagRunning: 'Tekshirilmoqda...',
-  diagCopy: 'Natijani nusxalash',
-  keyChange: 'Kalitni oʻzgartirish',
-  keyRemove: 'Kalitni oʻchirish',
-  settings: 'Sozlamalar',
-  back: 'Orqaga',
-  done: 'Tayyor',
-};
-
-export const strings: Record<Lang, typeof en> = {en, uz};
-
-export type Strings = typeof en;
-
-/**
- * Pick a starting language from the Telegram client.
- *
- * Only an explicitly English client starts in English -- many Uzbek users run
- * Telegram in Russian, and Uzbek serves them better than English does.
- */
-export function detectLanguage(telegramCode?: string): Lang {
-  return telegramCode?.toLowerCase().startsWith('en') ? 'en' : 'uz';
-}
+export type Strings = typeof strings;

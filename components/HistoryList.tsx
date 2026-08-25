@@ -29,7 +29,7 @@ export default function HistoryList({
   onOpen,
   onChanged,
 }: HistoryListProps) {
-  const {t, lang} = useSettings();
+  const {t} = useSettings();
 
   if (items.length === 0) return null;
 
@@ -57,7 +57,7 @@ export default function HistoryList({
       <ul className="history-list">
         {items.map((item) => {
           const thumb = historyThumbnail(item);
-          const summary = lang === 'uz' ? item.summaryUz : item.summaryEn;
+          const summary = item.summary;
 
           return (
             <li key={item.id} className="history-item">

@@ -29,8 +29,7 @@ export interface HistoryItem {
   sourceUrl?: string;
   spec: string;
   code: string;
-  summaryUz?: string;
-  summaryEn?: string;
+  summary?: string;
   createdAt: number;
 }
 

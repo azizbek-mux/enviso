@@ -32,15 +32,17 @@ Google. Your quota is never spent on someone else's video.
 
 ## Language
 
-The **interface** is Uzbek and English, starting in Uzbek unless the Telegram
-client is set to English (`lib/i18n.ts`).
+English throughout — the interface and everything it generates.
 
-**Generated output is English only.** It used to be bilingual, with every
-string carried twice behind a toggle — and that cost more than it bought.
-Doubling every label halves the room a figure has, doubles the text a single
-generation must produce, and constrains every layout decision to whichever
-language runs longer. The reference builds are English, and matching their
-quality meant matching that.
+It was bilingual once, carrying every string twice behind a toggle and
+requiring the same of every page it produced. That cost more than it bought:
+doubling every label halves the room a figure has, doubles the text one
+generation must write, and ties every layout decision to whichever language
+runs longer.
+
+Source language is a separate matter and still guarded: a video or paper that
+is not in English or Russian is refused, because a plan built on a misheard
+lecture teaches something wrong.
 
 ## The house style, and where it came from
 

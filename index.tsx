@@ -5,22 +5,14 @@
 
 import App from '@/App';
 import {SettingsContext} from '@/context';
-import {type Lang, detectLanguage, strings} from '@/lib/i18n';
-import {
-  initTelegram,
-  storage,
-  telegramLanguage,
-} from '@/lib/telegram';
+import {strings} from '@/lib/i18n';
+import {initTelegram, storage} from '@/lib/telegram';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import ReactDOM from 'react-dom/client';
 
 const KEY_STORAGE = 'gemini_api_key';
-const LANG_STORAGE = 'ui_lang';
 
 function Providers({children}: {children: React.ReactNode}) {
-  const [lang, setLangState] = useState<Lang>(() =>
-    detectLanguage(telegramLanguage()),
-  );
   const [apiKey, setApiKeyState] = useState<string | null>(null);
   const [keyLoading, setKeyLoading] = useState(true);
 
@@ -28,24 +20,14 @@ function Providers({children}: {children: React.ReactNode}) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [storedKey, storedLang] = await Promise.all([
-        storage.get(KEY_STORAGE),
-        storage.get(LANG_STORAGE),
-      ]);
+      const storedKey = await storage.get(KEY_STORAGE);
       if (cancelled) return;
       if (storedKey) setApiKeyState(storedKey);
-      if (storedLang === 'uz' || storedLang === 'en') setLangState(storedLang);
       setKeyLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const setLang = useCallback((next: Lang) => {
-    setLangState(next);
-    document.documentElement.lang = next;
-    void storage.set(LANG_STORAGE, next);
   }, []);
 
   const saveApiKey = useCallback(async (key: string) => {
@@ -61,15 +43,13 @@ function Providers({children}: {children: React.ReactNode}) {
 
   const settingsValue = useMemo(
     () => ({
-      lang,
-      setLang,
-      t: strings[lang],
+      t: strings,
       apiKey,
       saveApiKey,
       clearApiKey,
       keyLoading,
     }),
-    [lang, setLang, apiKey, saveApiKey, clearApiKey, keyLoading],
+    [apiKey, saveApiKey, clearApiKey, keyLoading],
   );
 
   return (

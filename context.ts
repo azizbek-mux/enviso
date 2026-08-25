@@ -3,13 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {Lang, Strings} from '@/lib/i18n';
+import type {Strings} from '@/lib/i18n';
 import {createContext, useContext} from 'react';
 
 export interface Settings {
-  lang: Lang;
-  setLang: (lang: Lang) => void;
-  /** Strings for the active language. */
   t: Strings;
   /** The user's own Gemini key, or null until they add one. */
   apiKey: string | null;

@@ -53,7 +53,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 interface ContentContainerProps {
   source: Source;
   /** A finished generation reopened from history, rather than a new one. */
-  restored?: {spec: string; code: string; summaryUz?: string; summaryEn?: string; title?: string};
+  restored?: {spec: string; code: string; summary?: string; title?: string};
   onLoadingStateChange?: (isLoading: boolean) => void;
 }
 
@@ -76,17 +76,15 @@ export default function ContentContainer({
   restored,
   onLoadingStateChange,
 }: ContentContainerProps) {
-  const {t, lang, apiKey} = useSettings();
+  const {t, apiKey} = useSettings();
 
   const [spec, setSpec] = useState(restored?.spec ?? '');
   const [code, setCode] = useState(restored?.code ?? '');
   const factsRef = useRef('');
   const identityRef = useRef('');
   const planRef = useRef<ReturnType<typeof planSections>>([]);
-  const [summary, setSummary] = useState<{uz?: string; en?: string; title?: string}>(
-    restored
-      ? {uz: restored.summaryUz, en: restored.summaryEn, title: restored.title}
-      : {},
+  const [summary, setSummary] = useState<{text?: string; title?: string}>(
+    restored ? {text: restored.summary, title: restored.title} : {},
   );
   const [streamed, setStreamed] = useState('');
   const [loadingState, setLoadingState] = useState<LoadingState>(
@@ -235,11 +233,7 @@ export default function ContentContainer({
     identityRef.current = screening.identity ?? '';
     planRef.current = planSections(screening.sections);
 
-    setSummary({
-      uz: screening.summaryUz,
-      en: screening.summaryEn,
-      title: screening.title,
-    });
+    setSummary({text: screening.summaryEn, title: screening.title});
 
     return screening.spec;
   }, [
@@ -378,7 +372,7 @@ export default function ContentContainer({
 
       return clearMarkers(assembled);
     },
-    [runOnBestModel, lang, t.buildingPart],
+    [runOnBestModel, t.buildingPart],
   );
 
   const generateCodeFromSpec = useCallback(
@@ -388,7 +382,7 @@ export default function ContentContainer({
       const prompt = baseSpec + buildSpecAddendum(currentPalette(), 'video');
       return parseHTML(await runOnBestModel(prompt));
     },
-    [source.kind, lang, runOnBestModel, generateExplainer],
+    [source.kind, runOnBestModel, generateExplainer],
   );
 
   const runGeneration = useCallback(async () => {
@@ -474,8 +468,7 @@ export default function ContentContainer({
       sourceUrl,
       spec: finalSpec,
       code: finalCode,
-      summaryUz: summary.uz,
-      summaryEn: summary.en,
+      summary: summary.text,
     });
   };
 
@@ -625,7 +618,7 @@ export default function ContentContainer({
     </div>
   );
 
-  const activeSummary = () => (lang === 'uz' ? summary.uz : summary.en);
+  const activeSummary = () => summary.text;
 
   const renderError = () => (
     <div className="state-panel">
@@ -657,9 +650,9 @@ export default function ContentContainer({
   /**
    * The learner-facing tab.
    *
-   * It used to show the raw build brief -- English, technical, written for a
-   * developer -- inside an app whose users are Uzbek students. The plan is
-   * still reachable, but it is now a disclosure rather than the default.
+   * It used to show the raw build brief, which is written for a developer and
+   * says nothing a learner wants. The plan is still reachable, but it is now a
+   * disclosure rather than the default.
    */
   const renderAbout = () => {
     if (rejection) return renderRejection(rejection);
