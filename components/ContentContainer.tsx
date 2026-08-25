@@ -7,6 +7,13 @@ import {useSettings} from '@/context';
 import {parseHTML, parseJSON} from '@/lib/parse';
 import {RefusedIllustration} from '@/components/Illustrations';
 import {
+  EXPLAINER_SECTIONS,
+  buildSectionPrompt,
+  buildShellPrompt,
+  clearMarkers,
+  stitchSection,
+} from '@/lib/explainerPrompts';
+import {
   JSON_ONLY_INSTRUCTION,
   PAPER_RESPONSE_SCHEMA,
   SPEC_FROM_PAPER_PROMPT,
@@ -58,6 +65,7 @@ export default function ContentContainer({
 
   const [spec, setSpec] = useState(restored?.spec ?? '');
   const [code, setCode] = useState(restored?.code ?? '');
+  const factsRef = useRef('');
   const [summary, setSummary] = useState<{uz?: string; en?: string; title?: string}>(
     restored
       ? {uz: restored.summaryUz, en: restored.summaryEn, title: restored.title}
@@ -160,6 +168,9 @@ export default function ContentContainer({
     // Throws VideoRejectedError when the source breaks one of the guards.
     assertUsable(screening, source.kind);
 
+    // Extracted numbers drive every later visual, so they are kept verbatim.
+    factsRef.current = screening.facts ?? '';
+
     // The summary is ready long before the app is, so it fills the wait.
     setSummary({
       uz: screening.summaryUz,
@@ -170,19 +181,16 @@ export default function ContentContainer({
     return screening.spec;
   }, [apiKey, source, screeningRequest, t.switchingModel, t.allBusy]);
 
-  const generateCodeFromSpec = useCallback(
-    async (baseSpec: string) => {
-      const prompt = baseSpec + buildSpecAddendum(currentPalette(), lang, source.kind);
+  /** One streamed call against the best model the key can reach. */
+  const runOnBestModel = useCallback(
+    async (prompt: string) => {
       const models = await resolveModels(apiKey!);
-
-      // Start at the model best suited to writing code, then walk outward to
-      // older, less contended ones.
       const chain = [
         models.code,
         ...models.chain.filter((id) => id !== models.code),
       ];
 
-      const html = await acrossModels(
+      return acrossModels(
         chain,
         (modelName) =>
           generateTextStream({
@@ -200,10 +208,62 @@ export default function ContentContainer({
             setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
         },
       );
-
-      return parseHTML(html);
     },
-    [apiKey, lang, source.kind, t.switchingModel, t.allBusy],
+    [apiKey, t.switchingModel, t.allBusy],
+  );
+
+  /**
+   * Explainer sites are written in parts: a shell, then each section.
+   *
+   * One generation has one output budget, and a whole site does not fit in it
+   * -- the hero, the 3D scene, every chart and all the prose end up competing
+   * for the same ceiling. Per-section calls each get their own.
+   */
+  const generateExplainer = useCallback(
+    async (baseSpec: string) => {
+      const facts = factsRef.current;
+      const palette = currentPalette();
+      const total = EXPLAINER_SECTIONS.length + 1;
+
+      setNotice(`${t.buildingPart} 1/${total}`);
+      const shell = parseHTML(
+        await runOnBestModel(buildShellPrompt(baseSpec, facts, palette, lang)),
+      );
+
+      let document = shell;
+
+      for (let i = 0; i < EXPLAINER_SECTIONS.length; i++) {
+        const section = EXPLAINER_SECTIONS[i];
+        setNotice(`${t.buildingPart} ${i + 2}/${total}`);
+
+        try {
+          const html = parseHTML(
+            await runOnBestModel(
+              buildSectionPrompt(section, baseSpec, facts, shell),
+            ),
+          );
+          document = stitchSection(document, section.key, html);
+          // Show the site filling in rather than a blank wait.
+          setCode(clearMarkers(document));
+        } catch (err) {
+          // A missing section is a smaller loss than an abandoned site.
+          console.warn(`Section "${section.key}" failed:`, err);
+        }
+      }
+
+      return clearMarkers(document);
+    },
+    [runOnBestModel, lang, t.buildingPart],
+  );
+
+  const generateCodeFromSpec = useCallback(
+    async (baseSpec: string) => {
+      if (source.kind === 'paper') return generateExplainer(baseSpec);
+
+      const prompt = baseSpec + buildSpecAddendum(currentPalette(), lang, 'video');
+      return parseHTML(await runOnBestModel(prompt));
+    },
+    [source.kind, lang, runOnBestModel, generateExplainer],
   );
 
   const runGeneration = useCallback(async () => {

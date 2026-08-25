@@ -48,6 +48,8 @@ export interface Screening {
   /** Learner-facing description of the result, written in both languages. */
   summaryEn?: string;
   summaryUz?: string;
+  /** JSON string of the paper's metadata, numbers and tables. */
+  facts?: string;
   reason?: string;
   spec: string;
 }

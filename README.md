@@ -78,6 +78,31 @@ reliably than English or Russian.
 Rejections are presented as answers rather than errors: no red, no retry
 button, and a sentence saying what to pick instead.
 
+## How an explainer site is built
+
+A single generation has one output budget, and a whole site does not fit in it:
+the hero, the 3D scene, every chart and all the prose end up competing for the
+same ceiling. So the research path is written in parts.
+
+1. **Screening** reads the paper once and returns three things: the verdict,
+   the plan, and `facts` — a JSON blob of the paper's metadata, authors, real
+   numbers and table rows. Every later visual is built from that data rather
+   than from a model's memory of prose, which is what keeps the figures true.
+2. **The shell** is generated: the head, all shared CSS, the sticky header, the
+   hero, the language machinery, and a placeholder comment per section.
+3. **Each section** is then generated separately against that finished shell,
+   so it reuses the same classes instead of inventing its own, and each gets a
+   full output budget of its own.
+4. **Stitching** replaces each placeholder. A section that fails is skipped
+   rather than losing the site, and any unfilled placeholder is stripped.
+
+That is seven model calls for one paper, against one for a video. It buys depth
+and real numbers, and it costs both quota and a few minutes.
+
+Sections share one language toggle without knowing about each other because
+every visible element carries `data-uz` and `data-en` itself; the shell's
+`applyLanguage()` walks the whole document.
+
 ## How generation works
 
 1. **Video → screening + plan.** A Flash model watches the video, reports what

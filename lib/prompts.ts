@@ -205,6 +205,7 @@ FIRST, screen the publication provided (attached as a file, or at the URL given 
 - "title": the publication's title, as printed.
 - "summaryEn": two or three sentences, in English, telling a reader what the explainer you are about to design will show them and what they will be able to try in it. Address the reader directly. No jargon, no mention of specs or code.
 - "summaryUz": the same summary in natural Latin-script Uzbek, using the characters oʻ and gʻ (U+02BB) rather than a plain apostrophe. Not a literal translation -- write it as an Uzbek speaker would.
+- "facts": a compact JSON object, given as a STRING, holding every concrete fact someone would need to build visuals from this paper without reading it. Include the metadata (title, journal, publication date, DOI, and any accession or registration identifiers), the authors with their affiliations, every headline number the paper reports, and the contents of its important tables as arrays of rows. Use the paper's own exact values and units -- never round, never estimate, never invent a figure to fill a gap. If the paper does not give a number, leave it out. This field is what the visuals will be drawn from, so it matters more than the prose.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. If you reached only an abstract or a landing page, say so with "unclear" rather than inventing the contents of a paper you did not read. A confident explanation of a paper you could not see is far worse than an honest refusal.
@@ -272,6 +273,11 @@ export const PAPER_RESPONSE_SCHEMA = {
     title: {type: 'string'},
     summaryEn: {type: 'string'},
     summaryUz: {type: 'string'},
+    facts: {
+      type: 'string',
+      description:
+        'JSON string of the paper metadata, authors, numbers and tables.',
+    },
     reason: {type: 'string'},
     spec: {type: 'string'},
   },
@@ -287,7 +293,7 @@ export const PAPER_RESPONSE_SCHEMA = {
  */
 export const JSON_ONLY_INSTRUCTION = `
 
-Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "summaryEn" (string), "summaryUz" (string), "reason" (string), "spec" (string).`;
+Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "summaryEn" (string), "summaryUz" (string), "facts" (string containing JSON), "reason" (string), "spec" (string).`;
 
 /* -------------------------------------------------------------------------- */
 /* Variations                                                                 */

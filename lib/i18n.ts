@@ -80,6 +80,8 @@ const en = {
   tabPlan: 'Developer plan',
   aboutHeading: 'What you will learn',
   buildingNow: 'Building it now...',
+  buildingPart: 'Writing part',
+  loadingSite: 'Reading the paper and planning the site...',
 
   variationsTitle: 'Not quite right?',
   variationSimpler: 'Simpler',
@@ -207,6 +209,8 @@ const uz: typeof en = {
   tabPlan: 'Dasturchi rejasi',
   aboutHeading: 'Nimani oʻrganasiz',
   buildingNow: 'Hozir yasalmoqda...',
+  buildingPart: 'Qism yozilmoqda:',
+  loadingSite: 'Maqola oʻqilmoqda va sayt rejalashtirilmoqda...',
 
   variationsTitle: 'Toʻgʻri kelmadimi?',
   variationSimpler: 'Soddaroq',
