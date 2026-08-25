@@ -6,6 +6,7 @@
 import {useSettings} from '@/context';
 import {parseHTML, parseJSON} from '@/lib/parse';
 import {RefusedIllustration} from '@/components/Illustrations';
+import {creditsFromFacts} from '@/lib/creditsFallback';
 import {
   EXPLAINER_SECTIONS,
   buildSectionPrompt,
@@ -224,12 +225,11 @@ export default function ContentContainer({
   const generateExplainer = useCallback(
     async (baseSpec: string) => {
       const facts = factsRef.current;
-      const palette = currentPalette();
       const total = EXPLAINER_SECTIONS.length + 1;
 
       setNotice(`${t.buildingPart} 1/${total}`);
       const shell = parseHTML(
-        await runOnBestModel(buildShellPrompt(baseSpec, facts, palette, lang)),
+        await runOnBestModel(buildShellPrompt(baseSpec, facts, lang)),
       );
 
       let document = shell;
@@ -238,18 +238,34 @@ export default function ContentContainer({
         const section = EXPLAINER_SECTIONS[i];
         setNotice(`${t.buildingPart} ${i + 2}/${total}`);
 
-        try {
-          const html = parseHTML(
-            await runOnBestModel(
-              buildSectionPrompt(section, baseSpec, facts, shell),
-            ),
-          );
+        const prompt = buildSectionPrompt(section, baseSpec, facts, shell);
+        let html: string | null = null;
+
+        // One retry before giving up. Silently skipping cost a real explainer
+        // its credits section, which is where the authors and the citation
+        // live -- the worst part of a research page to lose.
+        for (let attempt = 0; attempt < 2 && html === null; attempt++) {
+          try {
+            html = parseHTML(await runOnBestModel(prompt));
+          } catch (err) {
+            console.warn(
+              `Section "${section.key}" failed (attempt ${attempt + 1}):`,
+              err,
+            );
+          }
+        }
+
+        if (html) {
           document = stitchSection(document, section.key, html);
           // Show the site filling in rather than a blank wait.
           setCode(clearMarkers(document));
-        } catch (err) {
-          // A missing section is a smaller loss than an abandoned site.
-          console.warn(`Section "${section.key}" failed:`, err);
+        } else if (section.key === 'credits') {
+          // Attribution is pure data, so it never needs a model to survive.
+          document = stitchSection(
+            document,
+            section.key,
+            creditsFromFacts(facts),
+          );
         }
       }
 

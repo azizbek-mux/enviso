@@ -205,7 +205,16 @@ FIRST, screen the publication provided (attached as a file, or at the URL given 
 - "title": the publication's title, as printed.
 - "summaryEn": two or three sentences, in English, telling a reader what the explainer you are about to design will show them and what they will be able to try in it. Address the reader directly. No jargon, no mention of specs or code.
 - "summaryUz": the same summary in natural Latin-script Uzbek, using the characters oʻ and gʻ (U+02BB) rather than a plain apostrophe. Not a literal translation -- write it as an Uzbek speaker would.
-- "facts": a compact JSON object, given as a STRING, holding every concrete fact someone would need to build visuals from this paper without reading it. Include the metadata (title, journal, publication date, DOI, and any accession or registration identifiers), the authors with their affiliations, every headline number the paper reports, and the contents of its important tables as arrays of rows. Use the paper's own exact values and units -- never round, never estimate, never invent a figure to fill a gap. If the paper does not give a number, leave it out. This field is what the visuals will be drawn from, so it matters more than the prose.
+- "facts": a JSON object, given as a STRING, that is the complete data layer for the site. Everything built later is computed from this and nothing else, so it decides how good the result can be. Include:
+    * "meta": title, journal, volume and pages, year, all dates given (received, accepted, published), DOI and its URL, institution, ethics approval, funding, and any accession or registration identifiers.
+    * "authors": an array of every author with name, role or contribution, institution, department and email where the paper prints them.
+    * "metrics": the headline numbers, each with a label, the value, its unit, and what it means.
+    * "tables": every table that matters, each with a name, its column headers, and ALL of its rows as arrays of strings. Do not summarise a table -- reproduce it.
+    * "records": if the paper reports per-subject, per-sample or per-timepoint data, reproduce those individual rows in full with every field. A cohort of sixteen patients is sixteen objects, not a count. This is what allows a figure to be explored rather than merely displayed.
+    * "statistics": any correlation, p-value, confidence interval or effect size, each with what was compared and the exact reported value.
+    * "steps": if the paper describes a procedure, method or pipeline, its ordered stages with names and descriptions.
+    * "findings" and "limitations": the paper's own claims and its own stated caveats, as arrays of sentences.
+  Use the paper's exact values and units. Never round, never estimate, never invent a figure to fill a gap. If the paper does not report something, omit the field rather than guessing.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. If you reached only an abstract or a landing page, say so with "unclear" rather than inventing the contents of a paper you did not read. A confident explanation of a paper you could not see is far worse than an honest refusal.

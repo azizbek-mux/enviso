@@ -3,12 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import {HOUSE_STYLE} from '@/lib/houseStyle';
 import type {Lang} from '@/lib/i18n';
-import {
-  CODE_REGION_CLOSER,
-  CODE_REGION_OPENER,
-  type Palette,
-} from '@/lib/prompts';
+import {CODE_REGION_CLOSER, CODE_REGION_OPENER} from '@/lib/prompts';
 
 /**
  * Why an explainer is written in pieces.
@@ -21,29 +18,34 @@ import {
  */
 export const EXPLAINER_SECTIONS = [
   {
+    key: 'overview',
+    brief:
+      'An at-a-glance opening: a row of metric tiles carrying the headline numbers from the facts, and a short standfirst saying what was done and what was found. This is the first thing the reader meets after the hero, so it must be concrete and specific, never a restatement of the title.',
+  },
+  {
     key: 'problem',
     brief:
-      'The problem the paper attacks, and why it was hard. Plain language, no jargon before it is explained. Set the stakes.',
+      'The problem the paper attacks and why it was hard. Plain language, no jargon before it is explained, and open it with the drop cap. End by stating what a solution would have to achieve.',
   },
   {
     key: 'mechanism',
     brief:
-      'The method or contribution at the heart of the paper, staged at length. This is the centre of the site and must carry its main interactive visual -- a 3D scene the reader can orbit if the subject is genuinely spatial, otherwise an animated or manipulable 2D diagram.',
+      'The method or contribution at the heart of the paper, staged at length and set as the inverted dark panel. This carries the main interactive figure: an orbitable 3D scene if the subject is genuinely spatial, otherwise a manipulable 2D diagram or a stepped walkthrough of the procedure from the facts.',
   },
   {
     key: 'results',
     brief:
-      "The findings, driven by the paper's real numbers. Include at least one data visual built from the FACTS data -- a chart, a matrix or a timeline -- and say plainly what the figures mean.",
+      "The findings, built from the tables and records in the facts. Reproduce the real tables in full, and turn the reported statistics into figures the reader can operate -- a correlation becomes a plot with its regression and a control to move, a comparison of two groups shows both with the p-value. Caption each figure with what to notice.",
   },
   {
     key: 'limits',
     brief:
-      'The limitations and open questions the paper itself acknowledges, stated honestly and without hedging.',
+      "The limitations and open questions the paper itself acknowledges, taken from the facts, stated plainly and without softening. Include the pull quote here if the paper's central caveat deserves it.",
   },
   {
     key: 'credits',
     brief:
-      'The authors with their affiliations, the funding and approvals if the paper gives them, and the citation with a link to the publication.',
+      'Author cards for every author in the facts, with role, institution and department. Then the funding, the ethics approval and any accession identifiers, and the full citation with a link to the publication. This section is pure data from the facts, so it must be complete.',
   },
 ] as const;
 
@@ -76,16 +78,6 @@ const SANDBOX_CONTRACT = `RUNTIME -- a sandboxed iframe on a phone.
 - Do NOT fetch anything, and load no remote asset except three.js through the importmap the shell declares.
 - The page must never scroll sideways. Interactive targets at least 44x44px. Never rely on hover.`;
 
-function paletteBlock(palette: Palette): string {
-  return `VISUAL THEME
-- Colour scheme: ${palette.scheme}
-- Page background: ${palette.background}
-- Primary text: ${palette.text}
-- Secondary text: ${palette.hint}
-- Accent: ${palette.accent}
-- Text on accent: ${palette.accentText}`;
-}
-
 /**
  * First call: the document everything else slots into.
  *
@@ -95,7 +87,6 @@ function paletteBlock(palette: Palette): string {
 export function buildShellPrompt(
   spec: string,
   facts: string,
-  palette: Palette,
   uiLang: Lang,
 ): string {
   const markers = EXPLAINER_SECTIONS.map(
@@ -159,9 +150,7 @@ ${BILINGUAL_CONTRACT}
 
 ${SANDBOX_CONTRACT}
 
-${paletteBlock(palette)}
-
-TYPOGRAPHY: serif headings against a clean sans body, generous line height, real space between sections. It should read like a well-made exhibit: unhurried and confident. Use only fonts already on the device -- Georgia or Times New Roman for serif, the system UI stack for sans.
+${HOUSE_STYLE}
 
 Return ONLY the HTML document, between ${CODE_REGION_OPENER} and ${CODE_REGION_CLOSER}.`;
 }
@@ -200,6 +189,8 @@ RULES
 - Any JavaScript goes in a <script> INSIDE that section, wrapped in an IIFE so it cannot collide with another section. For three.js use a <script type="module"> inside your section, relying on the importmap the shell declares.
 - Use the shell's existing classes. Add a <style> inside your section only for rules genuinely specific to it.
 - Make it substantial. This is the only section covering this ground, so give it the depth the plan asks for rather than a summary.
+
+${HOUSE_STYLE}
 
 ${BILINGUAL_CONTRACT}
 

@@ -78,6 +78,29 @@ reliably than English or Russian.
 Rejections are presented as answers rather than errors: no red, no retry
 button, and a sentence saying what to pick instead.
 
+## The house style, and where it came from
+
+Three AI Studio explainers built from unrelated papers -- quantum error
+correction, SARS-CoV-2 genomics, paediatric cardiac surgery -- turned out to
+share a byte-identical scaffold, and the only difference in their document head
+was the `<title>`. Their quality comes from a fixed design system, not from
+per-paper invention.
+
+`lib/houseStyle.ts` encodes that system so every paper inherits it: Playfair
+Display over Inter, the cream/ink/gold palette, `6rem` section rhythm, uppercase
+eyebrows above headings, a gold rule beneath them, white figure cards, a drop
+cap, a pull quote, metric tiles, author cards, and one inverted dark panel for
+the technical centrepiece.
+
+It deliberately does **not** follow the Telegram theme. A research explainer
+should look like itself.
+
+The other lever was their data layer. It holds every table row and every raw
+record -- all sixteen patients with eighteen fields each -- and the components
+compute from it. That is how a reported `r = 0.726` becomes a plot with a
+draggable control rather than a sentence. Our `facts` contract now demands the
+same: complete tables, per-record rows, statistics, procedure steps, authors.
+
 ## How an explainer site is built
 
 A single generation has one output budget, and a whole site does not fit in it:
