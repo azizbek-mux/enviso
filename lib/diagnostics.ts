@@ -10,6 +10,9 @@ const API_ROOT = 'https://generativelanguage.googleapis.com/v1beta';
 /** A short, public, well-known video used only to test video input. */
 const TEST_VIDEO_URL = 'https://www.youtube.com/watch?v=JfD0nHrJDC0';
 
+/** An open-access paper, used only to test whether links can be fetched. */
+const TEST_PAPER_URL = 'https://doi.org/10.1371/journal.pone.0298940';
+
 export type CheckStatus = 'ok' | 'busy' | 'quota' | 'denied' | 'missing' | 'fail';
 
 export interface Check {
@@ -43,7 +46,8 @@ async function probe(
   apiKey: string,
   model: string,
   parts: unknown[],
-): Promise<{http: number; message: string}> {
+  tools?: unknown[],
+): Promise<{http: number; message: string; text?: string}> {
   try {
     const response = await fetch(
       `${API_ROOT}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
@@ -52,12 +56,20 @@ async function probe(
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           contents: [{role: 'user', parts}],
-          generationConfig: {maxOutputTokens: 16},
+          ...(tools ? {tools} : {}),
+          generationConfig: {maxOutputTokens: 200},
         }),
       },
     );
 
-    if (response.ok) return {http: response.status, message: 'OK'};
+    if (response.ok) {
+      const body = await response.json();
+      const text: string = (body?.candidates?.[0]?.content?.parts ?? [])
+        .map((part: {text?: string}) => part.text ?? '')
+        .join('')
+        .trim();
+      return {http: response.status, message: 'OK', text};
+    }
 
     const body = await response.text();
     let message = body;
@@ -144,6 +156,35 @@ export async function runDiagnostics(
     status: statusFromHttp(http, message),
     http,
     detail: http === 200 ? undefined : message,
+  });
+
+  // 4. Link retrieval, which the research section depends on entirely.
+  const link = await probe(
+    apiKey,
+    videoModel,
+    [
+      {
+        text: `Fetch this page and reply with its exact title, nothing else: ${TEST_PAPER_URL}`,
+      },
+    ],
+    [{url_context: {}}],
+  );
+
+  // A 200 that comes back empty or apologetic means the tool ran but fetched
+  // nothing -- which looks identical to success unless the text is read.
+  const fetched = Boolean(
+    link.text && link.text.length > 8 && !/cannot|unable|sorry/i.test(link.text),
+  );
+  push({
+    label: `Link fetch: ${videoModel}`,
+    status: link.http === 200 ? (fetched ? 'ok' : 'fail') : statusFromHttp(link.http, link.message),
+    http: link.http,
+    detail:
+      link.http === 200
+        ? fetched
+          ? `read: "${link.text?.slice(0, 80)}"`
+          : `tool returned nothing usable: "${(link.text ?? '').slice(0, 80)}"`
+        : link.message,
   });
 
   return finish(checks, models);
