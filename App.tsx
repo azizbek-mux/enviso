@@ -8,13 +8,13 @@ import KeyGate from '@/components/KeyGate';
 import {useSettings} from '@/context';
 import {LANGUAGES, type Lang} from '@/lib/i18n';
 import {isTooLong} from '@/lib/screening';
-import {haptic} from '@/lib/telegram';
+import {haptic, showBackButton} from '@/lib/telegram';
 import {
   getVideoDurationSeconds,
   getYoutubeEmbedUrl,
   validateYoutubeUrl,
 } from '@/lib/youtube';
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 export default function App() {
   const {t, lang, setLang, apiKey, keyLoading} = useSettings();
@@ -63,6 +63,12 @@ export default function App() {
     setReloadCounter((c) => c + 1);
   };
 
+  // Telegram's own back button is where a Mini App user looks first.
+  useEffect(() => {
+    if (!showSettings) return;
+    return showBackButton(() => setShowSettings(false));
+  }, [showSettings]);
+
   const handleLanguage = (next: Lang) => {
     haptic();
     setLang(next);
@@ -89,12 +95,13 @@ export default function App() {
         {apiKey && (
           <button
             className="button-ghost settings-button"
-            aria-label={t.settings}
+            aria-label={showSettings ? t.back : t.settings}
+            title={showSettings ? t.back : t.settings}
             onClick={() => {
               haptic();
-              setShowSettings(true);
+              setShowSettings((open) => !open);
             }}>
-            &#9881;
+            {showSettings ? '←' : '⚙'}
           </button>
         )}
       </div>

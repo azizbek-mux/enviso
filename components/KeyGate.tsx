@@ -110,8 +110,6 @@ export default function KeyGate({onClose}: KeyGateProps) {
 
         <p className="hint key-privacy">{t.keyStored}</p>
 
-        {apiKey && <Diagnostics />}
-
         {apiKey && (
           <div className="key-existing">
             <button className="button-ghost" onClick={handleRemove}>
@@ -124,6 +122,8 @@ export default function KeyGate({onClose}: KeyGateProps) {
             )}
           </div>
         )}
+
+        {apiKey && <Diagnostics />}
       </div>
 
       <style>{`

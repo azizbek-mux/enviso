@@ -41,6 +41,12 @@ interface TelegramWebApp {
     impactOccurred: (style: string) => void;
     notificationOccurred: (type: string) => void;
   };
+  BackButton?: {
+    show: () => void;
+    hide: () => void;
+    onClick: (handler: () => void) => void;
+    offClick: (handler: () => void) => void;
+  };
   CloudStorage?: {
     getItem: (
       key: string,
@@ -145,6 +151,25 @@ export function currentPalette() {
     hint: read('--color-hint', '#707579'),
     accent: read('--color-accent', '#3390ec'),
     accentText: read('--color-accent-text', '#ffffff'),
+  };
+}
+
+/**
+ * Show Telegram's own back button while a sub-screen is open.
+ *
+ * Returns a cleanup function. Outside Telegram this is a no-op, so callers
+ * need no branching -- the in-app back control covers the browser case.
+ */
+export function showBackButton(handler: () => void): () => void {
+  const back = tg?.BackButton;
+  if (!back) return () => {};
+
+  back.onClick(handler);
+  back.show();
+
+  return () => {
+    back.offClick(handler);
+    back.hide();
   };
 }
 
