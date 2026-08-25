@@ -33,8 +33,13 @@ const FALLBACK_CODE_MODEL = 'gemini-3.6-flash';
  */
 const ROUND_DELAYS_MS = [0, 5000, 15000];
 
-/** Enough alternates to outlast a busy spell, few enough to bound the wait. */
-const MAX_CHAIN_LENGTH = 4;
+/**
+ * Enough alternates to outlast a busy spell, few enough to bound the wait.
+ *
+ * Five rather than four so the demoted newest model still sits at the end of
+ * the chain: it is a poor first choice and a perfectly good last one.
+ */
+const MAX_CHAIN_LENGTH = 5;
 
 /** Remembers the model that last worked, so the next run starts there. */
 const PREFERRED_MODEL_KEY = 'preferred_model';
@@ -143,6 +148,22 @@ export function resetModelCache() {
   cachedChoice = null;
 }
 
+/**
+ * Put the newest model last rather than first.
+ *
+ * Contention tracks novelty: everyone is calling the newest release, so it is
+ * the one most likely to answer 503. Measured on a real key, gemini-3.7-flash
+ * refused while the release directly behind it answered immediately. Starting
+ * one release back trades a sliver of capability for a large gain in actually
+ * getting an answer -- and the newest stays in the chain, so a quiet moment
+ * still uses it.
+ */
+function demoteNewest(models: RankedModel[]): RankedModel[] {
+  if (models.length < 2) return models;
+  const [newest, ...rest] = models;
+  return [...rest, newest];
+}
+
 function moveToFront(chain: string[], id: string): string[] {
   if (!chain.includes(id)) return chain;
   return [id, ...chain.filter((entry) => entry !== id)];
@@ -179,7 +200,8 @@ export async function resolveModels(apiKey: string): Promise<ModelChoice> {
   }
 
   try {
-    const models = await listUsableModels(apiKey);
+    const ranked = await listUsableModels(apiKey);
+    const models = demoteNewest(ranked);
     const flash = models.filter((m) => m.tier === 2);
     const capable = models.filter((m) => m.tier >= 2);
     // A key limited to flash-lite should still work, badly, rather than fail.
@@ -187,10 +209,16 @@ export async function resolveModels(apiKey: string): Promise<ModelChoice> {
     const bestCode = capable[0] ?? models[0];
 
     // Capable models first, then lite ones, which are far less contended and
-    // still beat showing the user nothing.
-    let chain = [...new Set([...capable, ...models].map((m) => m.id))];
+    // still beat showing the user nothing. The newest is held out of the
+    // ordering entirely and appended last, so it can never be crowded past
+    // the cap by a preview release.
+    const newest = ranked[0]?.id;
+    let chain = [...new Set([...capable, ...models].map((m) => m.id))].filter(
+      (id) => id !== newest,
+    );
     if (preferredModel) chain = moveToFront(chain, preferredModel);
-    chain = chain.slice(0, MAX_CHAIN_LENGTH);
+    chain = chain.slice(0, MAX_CHAIN_LENGTH - 1);
+    if (newest && !chain.includes(newest)) chain.push(newest);
 
     if (bestSpec && bestCode && chain.length) {
       // A model already proven to work on this key outranks a theoretically

@@ -224,10 +224,15 @@ lib/i18n.ts                      interface strings, uz + en
 ## When a model is busy
 
 Google returns "this model is currently experiencing high demand" on its
-newest model far more often than on the one behind it. The app tries every
-model its key can see, in one quick pass with no delay, and only starts
-waiting once all of them have refused. Whichever model worked is remembered
-and tried first next time.
+newest model far more often than on the one behind it — measured on a real
+key, the newest returned 503 while the release directly behind it answered
+immediately.
+
+So the newest model is tried **last**, not first. Generation starts one
+release back, walks the whole list in a single pass with no delay, and only
+begins waiting once every model has refused. The newest stays pinned to the
+end of the chain, since it is a poor first choice and a perfectly good last
+one. Whichever model worked is remembered and tried first next time.
 
 If something does fail, the settings screen has a **Run check** button that
 probes the key directly and reports, per model, whether text and video
