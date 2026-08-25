@@ -59,6 +59,15 @@ type LoadingState = 'loading-spec' | 'loading-code' | 'ready' | 'error';
 
 const TABS = ['app', 'spec'] as const;
 
+/**
+ * Sections generated at the same time.
+ *
+ * Bounded by the key's tokens-per-minute rather than its request rate: each
+ * section carries the plan, the facts and the shell as input, so six at once
+ * can trip a free tier's token ceiling where three comfortably does not.
+ */
+const SECTION_CONCURRENCY = 3;
+
 export default function ContentContainer({
   source,
   restored,
@@ -194,9 +203,9 @@ export default function ContentContainer({
     return screening.spec;
   }, [apiKey, source, screeningRequest, t.switchingModel, t.allBusy]);
 
-  /** One streamed call against the best model the key can reach. */
+  /** One call against the best model the key can reach. */
   const runOnBestModel = useCallback(
-    async (prompt: string) => {
+    async (prompt: string, stream = true) => {
       const models = await resolveModels(apiKey!);
       const chain = [
         models.code,
@@ -210,11 +219,11 @@ export default function ContentContainer({
             apiKey: apiKey!,
             modelName,
             prompt,
-            onChunk: setStreamed,
+            onChunk: stream ? setStreamed : undefined,
           }),
         {
           onSwitch: (nextModel) => {
-            setStreamed('');
+            if (stream) setStreamed('');
             setNotice(`${t.switchingModel}: ${nextModel}`);
           },
           onWait: (waitMs) =>
@@ -226,11 +235,13 @@ export default function ContentContainer({
   );
 
   /**
-   * Explainer sites are written in parts: a shell, then each section.
+   * Explainer sites are written in parts, and the parts are written at once.
    *
-   * One generation has one output budget, and a whole site does not fit in it
-   * -- the hero, the 3D scene, every chart and all the prose end up competing
-   * for the same ceiling. Per-section calls each get their own.
+   * One generation has one output budget, and a whole site does not fit in it.
+   * But the sections only depend on the shell, never on each other, so writing
+   * them one after another was spending eight calls' worth of latency on work
+   * that could overlap. Three at a time rather than all six: the limit is the
+   * key's tokens-per-minute, not its patience.
    */
   const generateExplainer = useCallback(
     async (baseSpec: string) => {
@@ -253,21 +264,20 @@ export default function ContentContainer({
         ),
       );
 
-      let document = shell;
+      const written: (string | null)[] = new Array(sections.length).fill(null);
+      let done = 0;
+      let next = 0;
 
-      for (let i = 0; i < sections.length; i++) {
-        const section = sections[i];
-        setNotice(`${t.buildingPart} ${i + 2}/${total}`);
-
+      const buildOne = async (index: number) => {
+        const section = sections[index];
         const prompt = buildSectionPrompt(section, baseSpec, facts, shell);
-        let html: string | null = null;
 
         // One retry before giving up. Silently skipping cost a real explainer
         // its credits section, which is where the authors and the citation
         // live -- the worst part of a research page to lose.
-        for (let attempt = 0; attempt < 2 && html === null; attempt++) {
+        for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            html = parseHTML(await runOnBestModel(prompt));
+            return parseHTML(await runOnBestModel(prompt, false));
           } catch (err) {
             console.warn(
               `Section "${section.key}" failed (attempt ${attempt + 1}):`,
@@ -275,22 +285,33 @@ export default function ContentContainer({
             );
           }
         }
+        return null;
+      };
 
+      const worker = async () => {
+        for (let index = next++; index < sections.length; index = next++) {
+          written[index] = await buildOne(index);
+          done += 1;
+          setNotice(`${t.buildingPart} ${done + 1}/${total}`);
+        }
+      };
+
+      await Promise.all(
+        Array.from({length: Math.min(SECTION_CONCURRENCY, sections.length)}, worker),
+      );
+
+      let assembled = shell;
+      sections.forEach((section, index) => {
+        const html = written[index];
         if (html) {
-          document = stitchSection(document, section.key, html);
-          // Show the site filling in rather than a blank wait.
-          setCode(clearMarkers(document));
+          assembled = stitchSection(assembled, section.key, html);
         } else if (section.key === 'credits') {
           // Attribution is pure data, so it never needs a model to survive.
-          document = stitchSection(
-            document,
-            section.key,
-            creditsFromFacts(facts),
-          );
+          assembled = stitchSection(assembled, section.key, creditsFromFacts(facts));
         }
-      }
+      });
 
-      return clearMarkers(document);
+      return clearMarkers(assembled);
     },
     [runOnBestModel, lang, t.buildingPart],
   );

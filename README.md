@@ -116,8 +116,15 @@ same ceiling. So the research path is written in parts.
 3. **Each section** is then generated separately against that finished shell,
    so it reuses the same classes instead of inventing its own, and each gets a
    full output budget of its own.
-4. **Stitching** replaces each placeholder. A section that fails is skipped
-   rather than losing the site, and any unfilled placeholder is stripped.
+4. **Stitching** replaces each placeholder. A section that fails is retried
+   once, then skipped rather than losing the site; credits falls back to
+   markup built straight from the facts, since attribution is pure data.
+
+Sections are written **three at a time**, because they depend on the shell but
+never on each other — writing them one after another spent most of the wall
+clock on work that could overlap. Three rather than six is bounded by a free
+key's tokens-per-minute, not its request rate: each section carries the plan,
+the facts and the shell as input.
 
 That is seven model calls for one paper, against one for a video. It buys depth
 and real numbers, and it costs both quota and a few minutes.
