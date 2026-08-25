@@ -172,7 +172,7 @@ export default function ContentContainer({
 
   const generateCodeFromSpec = useCallback(
     async (baseSpec: string) => {
-      const prompt = baseSpec + buildSpecAddendum(currentPalette(), lang);
+      const prompt = baseSpec + buildSpecAddendum(currentPalette(), lang, source.kind);
       const models = await resolveModels(apiKey!);
 
       // Start at the model best suited to writing code, then walk outward to
@@ -203,7 +203,7 @@ export default function ContentContainer({
 
       return parseHTML(html);
     },
-    [apiKey, lang, t.switchingModel, t.allBusy],
+    [apiKey, lang, source.kind, t.switchingModel, t.allBusy],
   );
 
   const runGeneration = useCallback(async () => {

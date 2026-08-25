@@ -7,8 +7,12 @@ from that plan — **in Uzbek and English, with a toggle built into the result**
 Two sections, one API key:
 
 - **Video** — a YouTube lesson becomes an app that drills its key idea.
-- **Research** — a paper becomes an interactive explainer of its mechanism,
-  from an uploaded PDF or a link the model retrieves itself.
+- **Research** — a paper becomes a long-form explainer *website*: hero, the
+  problem, the mechanism, an interactive visual, the numbers, the limitations,
+  the citation. From an uploaded PDF or a link the model retrieves itself.
+  Where the subject is genuinely spatial it gets a real 3D scene the reader
+  can orbit; where it is not, it gets a diagram, because a gratuitous rotating
+  object explains nothing.
 
 Based on Aaron Wade's Google AI Studio sample, rebuilt for Telegram.
 
@@ -89,8 +93,13 @@ and picks the newest, because Google retires model names and a hardcoded one
 becomes a 404 on a timer.
 
 The result renders in a sandboxed iframe. Because that sandbox has no
-same-origin access, the prompt forbids `localStorage`, cookies and any network
-request — those would throw and break the generated app.
+same-origin access, the prompt forbids `localStorage` and cookies in both
+modes — those throw and break the page.
+
+Network access differs by mode. A learning app must be entirely inline: it is
+small, and a CDN is a failure point it does not need. An explainer website may
+load **three.js and nothing else**, from a pinned unpkg URL, since real 3D is
+not worth hand-rolling in WebGL.
 
 ## What it does beyond generating
 

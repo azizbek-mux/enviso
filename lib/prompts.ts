@@ -103,7 +103,25 @@ export interface Palette {
  *  3. Theme matching. The live Telegram palette is injected so the generated
  *     app does not flash white inside a dark Telegram.
  */
-export function buildSpecAddendum(palette: Palette, uiLang: Lang): string {
+export function buildSpecAddendum(
+  palette: Palette,
+  uiLang: Lang,
+  kind: 'video' | 'paper' = 'video',
+): string {
+  const paper = kind === 'paper';
+
+  /*
+   * Learning apps stay strictly offline: they are small, and a CDN is a
+   * failure point they do not need. An explainer website may need real 3D,
+   * which is not worth hand-rolling in WebGL, so that path -- and only that
+   * path -- may reach for three.js.
+   */
+  const networkRule = paper
+    ? THREE_JS_RULE
+    : `- Do NOT load anything over the network: no CDN scripts, no external stylesheets, no web fonts, no remote images, no fetch or XMLHttpRequest calls. Everything must be inline. Use CSS, inline SVG, emoji, or the Canvas API for visuals.`;
+
+  const closing = paper ? PAPER_CRAFT_RULE : APP_CRAFT_RULE;
+
   return `
 
 
@@ -126,8 +144,8 @@ BILINGUAL INTERFACE (this is a hard requirement, not a nice-to-have)
 RUNTIME ENVIRONMENT (a sandboxed iframe inside a Telegram Mini App on a phone)
 - Mobile-first. Assume a viewport about 360px wide with a touch screen. It must also scale up gracefully on desktop.
 - Interactive targets must be at least 44x44px. Never rely on :hover, right-click, or keyboard-only interactions to convey information or drive core mechanics; support tap and drag.
-- Do NOT use localStorage, sessionStorage, cookies, or IndexedDB. The sandbox blocks them and any access throws an exception that will break the app. Keep all state in JavaScript variables.
-- Do NOT load anything over the network: no CDN scripts, no external stylesheets, no web fonts, no remote images, no fetch or XMLHttpRequest calls. Everything must be inline. Use CSS, inline SVG, emoji, or the Canvas API for visuals.
+- Do NOT use localStorage, sessionStorage, cookies, or IndexedDB. The sandbox blocks them and any access throws an exception that will break the page. Keep all state in JavaScript variables.
+${networkRule}
 - If you need audio, synthesize it with the Web Audio API and only start the AudioContext inside a user gesture handler, since mobile browsers block autoplay.
 - The document must never scroll horizontally. Long content scrolls vertically inside its own container.
 
@@ -140,8 +158,29 @@ VISUAL THEME (match the surrounding Telegram client)
 - Text on accent: ${palette.accentText}
 Use these exact values as the base palette. Derived shades are fine, but the app must feel like it belongs inside this theme, and text must stay readable against its background.
 
-Keep the design simple, playful, and focused on the core mechanic. Working interactivity matters more than decoration.`;
+${closing}`;
 }
+
+const THREE_JS_RULE = `- Load nothing over the network EXCEPT three.js, and only if the spec calls for a 3D scene. When you need it, import it exactly like this and add no other remote resource of any kind:
+
+  <script type="importmap">
+  {"imports":{"three":"https://unpkg.com/three@0.181.1/build/three.module.js","three/addons/":"https://unpkg.com/three@0.181.1/examples/jsm/"}}
+  </script>
+  <script type="module">
+  import * as THREE from 'three';
+  import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+  </script>
+
+  Keep any scene light enough for a phone: cap the pixel ratio at 2, keep geometry simple, pause the render loop when the canvas scrolls out of view, and if WebGL is unavailable show a diagram in its place rather than an empty box. Still no web fonts, no remote images, and no fetch or XMLHttpRequest.`;
+
+const APP_CRAFT_RULE = `Keep the design simple, playful, and focused on the core mechanic. Working interactivity matters more than decoration.`;
+
+const PAPER_CRAFT_RULE = `TYPOGRAPHY AND PACING
+- This is a long-form site, so it must be a pleasure to read: a serif face for headings against a clean sans for body text, generous line height, a measure of roughly 65-75 characters, and real space between sections.
+- Let it breathe. A confident explainer is unhurried; do not compress it into a stack of cards.
+- The reader must always know where they are, so give it a slim sticky header or section markers rather than letting a long scroll run unmarked.
+
+Working interactivity and clear explanation matter more than decoration, but this should look like something made with care.`;
 
 /* -------------------------------------------------------------------------- */
 /* Research papers                                                            */
@@ -172,16 +211,21 @@ Be strict. If you reached only an abstract or a landing page, say so with "uncle
 
 THEN, only if "teachable" is true AND "contentKind" is "educational", write the spec. Otherwise set "spec" to an empty string and stop.
 
-When you do write it: produce a detailed, self-contained spec for a single-page interactive web experience that explains this publication to a curious reader who is not a specialist. The recipient of the spec has not read the paper, so the spec must carry every fact, number and definition it needs. The spec must:
+When you do write it: produce a detailed, self-contained spec for an EXPLAINER WEBSITE about this publication -- a long-form, scrolling narrative site, not a small app and not a quiz. Think of how a museum or a good science magazine presents a piece of research: it opens, it unfolds, it makes one difficult idea visible. The recipient of the spec has not read the paper, so the spec must carry every fact, number, name and definition it needs.
 
-1. Open by stating the problem the paper attacks, in plain language, and why it was hard.
-2. Explain the core mechanism or method the paper contributes. This is the heart of it.
-3. Include at least one INTERACTIVE diagram or simulation that makes that mechanism visible -- something the reader manipulates and sees respond, not a static picture. Describe precisely what it shows, what the reader controls, and what changes as a result.
-4. Present the key quantitative results, with the actual numbers from the paper, and say plainly what they mean.
-5. State the limitations or open questions the paper itself acknowledges.
-6. Credit the authors and cite the publication.
+Specify the site as a sequence of sections, and say what each one contains:
 
-Aim for the feel of a well-made museum exhibit: serious about the science, generous to the newcomer, and never padded. Every section must earn its place, and the interactive element must teach something a paragraph could not.
+1. A HERO: the paper's title, its authors, the journal and date, and one sentence stating what was achieved. Describe the visual that sits behind or beside it.
+2. THE PROBLEM: what question the paper attacks, in plain language, and why it was hard. No jargon before it is explained.
+3. THE MECHANISM: the method or contribution at the heart of the paper. This is the centre of the site and should be its longest, most carefully staged part.
+4. AT LEAST ONE INTERACTIVE VISUAL that makes that mechanism visible -- something the reader manipulates and sees respond, not a static picture. Say precisely what is shown, what the reader controls, and what changes as a result.
+5. RESULTS: the key numbers, exactly as the paper reports them, and plainly what they mean.
+6. LIMITATIONS: the open questions the paper itself acknowledges.
+7. CREDITS: the authors, their institutions, and the citation with a link to the publication.
+
+ON THREE-DIMENSIONAL VISUALS. If, and only if, the subject is genuinely spatial -- a molecular or crystal structure, an anatomical arrangement, a physical or astronomical system, a lattice, a field, a geometry, a device -- then specify a real 3D scene the reader can orbit and inspect, saying what it depicts and what the controls do. Three.js will be available for this. When the subject is not spatial, do NOT ask for 3D: a well-made 2D diagram, chart or animation explains a statistical or algorithmic result far better, and a gratuitous rotating object is worse than none.
+
+Aim for the feel of a well-made exhibit: serious about the science, generous to the newcomer, unhurried, never padded. Every section must earn its place, and the interactive parts must show something the prose could not.
 
 Write the spec in English regardless of the publication's language. The spec is a build brief for a developer, not user-facing text.`;
 
