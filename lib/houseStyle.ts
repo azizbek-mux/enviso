@@ -30,22 +30,58 @@ export const HOUSE_PALETTE = `PALETTE -- use these exact values.
 This is a light, printed-page identity and it does not follow the reader's
 system theme. A research explainer should look like itself.`;
 
-export const HOUSE_TYPOGRAPHY = `TYPOGRAPHY
-- Headings: 'Playfair Display', Georgia, serif.
-- Body and UI: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif.
-- Load exactly these two faces, nothing else:
+export const HOUSE_TYPOGRAPHY = `STYLING SYSTEM -- Tailwind, exactly as the reference build uses it.
+Declare these in the head and style everything with Tailwind utility classes.
+Hand-written CSS drifts between sections; a shared utility vocabulary does not.
 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Playfair Display"', 'serif'],
+            sans: ['"Inter"', 'sans-serif'],
+          },
+          colors: {
+            nobel: { gold: '#C5A059', dark: '#1a1a1a', cream: '#F9F8F4' }
+          }
+        }
+      }
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; scroll-padding-top: 100px; }
+    body { background-color: #F9F8F4; color: #1a1a1a;
+           font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    /* Fallback: if the Tailwind CDN is blocked or slow, the page must still be
+       readable rather than a wall of unstyled text. These carry the bones. */
+    .font-serif { font-family: 'Playfair Display', Georgia, serif; }
+    main > section { padding: 4rem 1.5rem; border-top: 1px solid #e7e5e4; }
+    main > section > div { max-width: 80rem; margin: 0 auto; }
+    img, svg, canvas { max-width: 100%; height: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e7e5e4; padding: .5rem; text-align: left; }
+  </style>
 
-- h1 in the hero: clamp(2.5rem, 7vw, 5.5rem), weight 400-500, line-height 0.95
-  to 1.05. It should feel like a title page.
-- h2 opening a section: clamp(1.9rem, 4.5vw, 3rem), weight 400-600.
-- Body: 1.05-1.15rem, line-height 1.7, colour #57534e, measure 65-72
-  characters. Never let prose run the full width of a wide screen.
-- Numbers presented as findings are set in the serif face at large size, so a
-  figure reads as a statement rather than as data exhaust.`;
+THE CLASS VOCABULARY -- use these, not invented equivalents:
+- Greys: text-stone-900 for headings, text-stone-600 and text-stone-500 for
+  body and labels, border-stone-200 for hairlines, bg-stone-100 for chips.
+- Cards: bg-white rounded-2xl border border-stone-200 shadow-sm p-5 lg:p-8.
+- Sections: py-20 or py-24, border-t border-stone-200, inner container
+  max-w-7xl mx-auto px-6.
+- Eyebrow: text-xs font-bold uppercase tracking-widest text-stone-500.
+- Headings: font-serif, text-3xl md:text-5xl, text-stone-900, leading-tight.
+- The hero title: font-serif text-5xl md:text-7xl lg:text-8xl leading-[0.95].
+- Figures and statistics: font-mono, with text-[11px] or text-xs for detail.
+- Accent: the identity's accent colour, or nobel-gold when none is given.
+- Grids: grid grid-cols-1 md:grid-cols-3 gap-5 for cards;
+  grid-cols-1 lg:grid-cols-12 gap-8 for a figure beside its detail panel.
+
+`;
 
 export const HOUSE_IDIOMS = `LAYOUT IDIOMS -- these recur throughout, and consistency is what makes it
 feel designed rather than assembled.

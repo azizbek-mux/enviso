@@ -4,6 +4,7 @@
  */
 
 import {HOUSE_STYLE} from '@/lib/houseStyle';
+import {REFERENCE_SECTION} from '@/lib/referenceExample';
 import type {Lang} from '@/lib/i18n';
 import {CODE_REGION_CLOSER, CODE_REGION_OPENER} from '@/lib/prompts';
 
@@ -104,7 +105,7 @@ Every element whose text the reader sees carries BOTH languages as attributes:
 
 const SANDBOX_CONTRACT = `RUNTIME -- a sandboxed iframe on a phone.
 - Do NOT use localStorage, sessionStorage, cookies or IndexedDB. Access throws and breaks the page.
-- Do NOT fetch anything, and load no remote asset except three.js through the importmap the shell declares.
+- Do NOT fetch anything. The only remote assets are the ones the shell already declares: Tailwind, Google Fonts, and three.js through its importmap. Add no others.
 - The page must never scroll sideways. Interactive targets at least 44x44px. Never rely on hover.
 - Never navigate. No <a href> to another page, no location changes, no target="_blank" except a real external citation link. In-page links are handled for you by the shell.`;
 
@@ -184,37 +185,32 @@ THE SITE'S IDENTITY -- its own name, tagline, accent colour and call to action. 
 
 ${identity}
 
-PRODUCE a complete, valid HTML document containing:
+PRODUCE a complete, valid HTML document with exactly this skeleton, which is the reference build's own:
 
-1. <!DOCTYPE html>, a head with charset and viewport, and a <title>.
-2. ALL the CSS for the entire site, in one inline <style>. Later sections will use your classes, so define a full system now: layout containers, a reading measure of roughly 65-75 characters, section spacing, headings, body text, figures and captions, tables, chart and canvas containers, cards, and the sticky header. Name classes clearly and predictably.
-3. If the plan calls for a 3D scene anywhere, declare this importmap in the head so a section can import three.js. Include it ONLY if 3D is genuinely needed:
+1. <!DOCTYPE html>, head with charset and viewport, a <title>, and the Tailwind, fonts and base styles given in the styling system below.
+2. If any section's instrument is a 3d-scene, add this importmap to the head. Otherwise leave it out:
 
   <script type="importmap">
   {"imports":{"three":"https://unpkg.com/three@0.181.1/build/three.module.js","three/addons/":"https://unpkg.com/three@0.181.1/examples/jsm/"}}
   </script>
 
-4. A slim sticky header carrying, on the left, a small inline-SVG mark and the site's own short name from the identity below with its tagline beneath, and on the right an accent-filled button linking to the publication. Between them, in-page links to every section using exactly these labels, each carrying both languages:
+3. A FIXED HEADER, full width, that becomes translucent with a blur and shrinks once the page scrolls past 50px:
+   - Left: a small square accent-filled tile holding a simple inline-SVG mark, then the site's own name from the identity in font-serif font-bold, with the source and study named beneath it in text-xs font-mono text-stone-500.
+   - Centre: a rounded-2xl bg-white border border-stone-200 bar holding the section links, each two lines at most, using exactly these labels and carrying both languages:
 
 ${navPlan}
 
-   Do not rename them and do not fall back to generic words like Overview or Results. Also include a compact language toggle showing O'Z and EN.
-   The old instruction continues: in-page links to every section, and a compact language toggle showing O'Z and EN. The links point at the section ids below. Do NOT attach your own click handlers to them -- the script in point 8 already scrolls them, and a plain fragment navigation would blank the page in this runtime. Give the CSS "scroll-behavior: smooth" and a "scroll-padding-top" clear of the header.
-5. A HERO: the paper's full title, its authors, the journal and date, and one sentence stating what was achieved.
-6. A <main> containing these markers, each alone on its own line, in this order and spelled exactly. Put NOTHING between them -- they are placeholders that get replaced:
+   - Right: a solid accent-filled rounded-full button linking to the publication, labelled from the identity, with a small external-link SVG. Beside it a compact O'Z / EN toggle whose buttons carry data-lang-btn="uz" and data-lang-btn="en".
+   - Below the bar on mobile, collapse the links behind a menu button.
+4. A HERO, py-20 or taller, containing in order: a small rounded-full outlined pill carrying the identity's tagline in the accent colour; the paper's full title as an h1 in font-serif at text-5xl md:text-7xl lg:text-8xl with leading-[0.95]; a standfirst paragraph of one or two sentences in text-lg text-stone-600 max-w-3xl saying concretely what was done and found; then a grid of three or four METRIC TILES, each a white rounded-2xl bordered card with an uppercase text-[10px] tracking-widest label, the figure large in font-serif, and a one-line caption beneath.
+5. A <main> containing these markers, each alone on its own line, in this order and spelled exactly. Put NOTHING between them:
 
 ${markers}
 
-7. A footer.
-8. One <script>, at the end of the body, defining the language machinery and nothing else:
+6. A dark bg-nobel-dark footer carrying the site name in font-serif, the full citation, the licence, and the DOI link.
+7. One <script> at the end of the body containing the language machinery, the scroll handler and the header shrink, and nothing else:
 
 ${languageScript}
-
-  The toggle buttons carry data-lang-btn="uz" and data-lang-btn="en". Sections are inserted before this script runs, so it translates them too.
-
-${BILINGUAL_CONTRACT}
-
-${SANDBOX_CONTRACT}
 
 ${HOUSE_STYLE}
 
@@ -259,6 +255,10 @@ RULES
 - Make it substantial. This is the only section covering this ground, so give it the depth the plan asks for rather than a summary.
 
 ${HOUSE_STYLE}
+
+A WORKED EXAMPLE. This is a real section from the reference build, in the exact idiom you must use: Tailwind classes, inline SVG drawn from a data array by arithmetic, plain JavaScript in an IIFE, statistics set in mono with real superscripts, cards tinted by meaning, chips that drive the figure, and a detail panel that updates on selection. Match this level of construction. Do not copy its subject matter -- copy how it is built.
+
+${REFERENCE_SECTION}
 
 ${BILINGUAL_CONTRACT}
 
