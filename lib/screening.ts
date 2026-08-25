@@ -45,6 +45,9 @@ export interface Screening {
   audioQuality: 'clear' | 'unclear' | 'none';
   teachable: boolean;
   title?: string;
+  /** Learner-facing description of the result, written in both languages. */
+  summaryEn?: string;
+  summaryUz?: string;
   reason?: string;
   spec: string;
 }

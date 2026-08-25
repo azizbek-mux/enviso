@@ -92,6 +92,23 @@ The result renders in a sandboxed iframe. Because that sandbox has no
 same-origin access, the prompt forbids `localStorage`, cookies and any network
 request — those would throw and break the generated app.
 
+## What it does beyond generating
+
+- **History.** Finished apps are kept in IndexedDB and reopen instantly, with
+  no second generation and no second charge against the user's quota.
+- **The plan fills the wait.** Screening returns a learner-facing summary in
+  both languages before the app is written, so the minute of building is spent
+  reading what is coming rather than watching a spinner.
+- **Variations.** *Simpler*, *more visual*, *as a quiz* rebuild from the same
+  plan, which costs one call rather than two since the source is never re-read.
+- **Sharing.** A generated app cannot be hosted without a server, so the share
+  link carries the source instead: the recipient opens the Mini App with it
+  ready to build. Set `MINI_APP_PATH` in `lib/deeplink.ts` once BotFather has
+  given you the link; until then sharing falls back to the bare source URL.
+- **Telegram's own buttons.** MainButton drives the primary action and
+  BackButton leaves the settings screen; both fall back to in-page controls
+  outside Telegram.
+
 ## Develop
 
 ```bash
@@ -135,6 +152,10 @@ App.tsx                         screen layout, URL input, language toggle
 components/ContentContainer.tsx  generation state machine and the two tabs
 components/KeyGate.tsx           bring-your-own-key onboarding
 components/Diagnostics.tsx       probes what the user's key can actually do
+components/HistoryList.tsx       apps this device has already built
+components/Illustrations.tsx     inline SVG for the empty and refused states
+lib/history.ts                   IndexedDB store of finished generations
+lib/deeplink.ts                  share links and startapp payloads
 lib/prompts.ts                   both prompts — the product's behavior lives here
 lib/screening.ts                 the guards, and what counts as an unusable source
 lib/source.ts                    what a generation is built from: video, PDF, or link

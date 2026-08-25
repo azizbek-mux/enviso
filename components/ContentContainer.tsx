@@ -5,12 +5,15 @@
 
 import {useSettings} from '@/context';
 import {parseHTML, parseJSON} from '@/lib/parse';
+import {RefusedIllustration} from '@/components/Illustrations';
 import {
   JSON_ONLY_INSTRUCTION,
   PAPER_RESPONSE_SCHEMA,
   SPEC_FROM_PAPER_PROMPT,
   SPEC_FROM_VIDEO_PROMPT,
   SPEC_RESPONSE_SCHEMA,
+  VARIATIONS,
+  type VariationKind,
   buildSpecAddendum,
   paperUrlInstruction,
 } from '@/lib/prompts';
@@ -20,8 +23,10 @@ import {
   VideoRejectedError,
   assertUsable,
 } from '@/lib/screening';
+import {saveHistory} from '@/lib/history';
+import {shareLink} from '@/lib/deeplink';
 import type {Source} from '@/lib/source';
-import {currentPalette, haptic, notify} from '@/lib/telegram';
+import {currentPalette, haptic, notify, shareToChat} from '@/lib/telegram';
 import {
   OverloadedError,
   acrossModels,
@@ -35,6 +40,8 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 
 interface ContentContainerProps {
   source: Source;
+  /** A finished generation reopened from history, rather than a new one. */
+  restored?: {spec: string; code: string; summaryUz?: string; summaryEn?: string; title?: string};
   onLoadingStateChange?: (isLoading: boolean) => void;
 }
 
@@ -44,15 +51,23 @@ const TABS = ['app', 'spec'] as const;
 
 export default function ContentContainer({
   source,
+  restored,
   onLoadingStateChange,
 }: ContentContainerProps) {
   const {t, lang, apiKey} = useSettings();
 
-  const [spec, setSpec] = useState('');
-  const [code, setCode] = useState('');
+  const [spec, setSpec] = useState(restored?.spec ?? '');
+  const [code, setCode] = useState(restored?.code ?? '');
+  const [summary, setSummary] = useState<{uz?: string; en?: string; title?: string}>(
+    restored
+      ? {uz: restored.summaryUz, en: restored.summaryEn, title: restored.title}
+      : {},
+  );
   const [streamed, setStreamed] = useState('');
-  const [loadingState, setLoadingState] =
-    useState<LoadingState>('loading-spec');
+  const [loadingState, setLoadingState] = useState<LoadingState>(
+    restored ? 'ready' : 'loading-spec',
+  );
+  const [showPlan, setShowPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rejection, setRejection] = useState<VideoRejectedError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -67,7 +82,6 @@ export default function ContentContainer({
   // Generation is expensive and paid for out of the user's own quota, so it
   // must fire exactly once per mount no matter how often effects re-run.
   const startedRef = useRef(false);
-  const streamTailRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     onLoadingStateChange?.(
@@ -146,6 +160,13 @@ export default function ContentContainer({
     // Throws VideoRejectedError when the source breaks one of the guards.
     assertUsable(screening, source.kind);
 
+    // The summary is ready long before the app is, so it fills the wait.
+    setSummary({
+      uz: screening.summaryUz,
+      en: screening.summaryEn,
+      title: screening.title,
+    });
+
     return screening.spec;
   }, [apiKey, source, screeningRequest, t.switchingModel, t.allBusy]);
 
@@ -204,6 +225,7 @@ export default function ContentContainer({
       setStreamed('');
       setLoadingState('ready');
       notify('success');
+      void remember(generatedSpec, generatedCode);
     } catch (err) {
       if (err instanceof VideoRejectedError) {
         console.info('Video rejected:', err.reason, err.detail ?? '');
@@ -230,8 +252,11 @@ export default function ContentContainer({
     if (startedRef.current) return;
     startedRef.current = true;
 
+    // A restored item is already finished; regenerating it would spend quota
+    // to reproduce something the user is looking at.
+    if (restored) return;
     void runGeneration();
-  }, [runGeneration]);
+  }, [runGeneration, restored]);
 
   useEffect(() => {
     if (!fullScreen) return;
@@ -247,11 +272,66 @@ export default function ContentContainer({
     if (code) setIframeKey((k) => k + 1);
   }, [code]);
 
-  // Keep the streaming view pinned to the newest output.
-  useEffect(() => {
-    const el = streamTailRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [streamed]);
+  /** Store a finished generation so closing the app does not lose it. */
+  const remember = async (finalSpec: string, finalCode: string) => {
+    const sourceUrl =
+      source.kind === 'video'
+        ? source.url
+        : source.via === 'url'
+          ? source.url
+          : undefined;
+
+    await saveHistory({
+      kind: source.kind,
+      title: summaryTitle(),
+      sourceUrl,
+      spec: finalSpec,
+      code: finalCode,
+      summaryUz: summary.uz,
+      summaryEn: summary.en,
+    });
+  };
+
+  const summaryTitle = () =>
+    summary.title?.trim() ||
+    (source.kind === 'video'
+      ? source.url
+      : source.via === 'url'
+        ? source.url
+        : source.name);
+
+  /** Rebuild from the same plan with a nudge -- one call, not two. */
+  const handleVariation = async (kind: VariationKind) => {
+    if (isBusy || !spec) return;
+    haptic('medium');
+    setActiveTab(0);
+
+    try {
+      setLoadingState('loading-code');
+      setError(null);
+      setStreamed('');
+      const generated = await generateCodeFromSpec(spec + VARIATIONS[kind]);
+      setCode(generated);
+      setStreamed('');
+      setLoadingState('ready');
+      notify('success');
+      void remember(spec, generated);
+    } catch (err) {
+      console.error('Variation failed:', err);
+      setError(err instanceof Error ? err.message : String(err));
+      setLoadingState('error');
+      notify('error');
+    }
+  };
+
+  const canShare = shareLink(source) !== null;
+
+  const handleShare = () => {
+    const link = shareLink(source);
+    if (!link) return;
+    haptic();
+    shareToChat(link, `${t.shareText} ${summaryTitle()}`);
+  };
 
   const handleRetry = () => {
     haptic();
@@ -299,11 +379,21 @@ export default function ContentContainer({
           : t.loadingCode}
       </p>
       {notice && <p className="state-notice">{notice}</p>}
-      {loadingState === 'loading-code' && streamed && (
-        <pre ref={streamTailRef} className="stream-tail">
-          {streamed.slice(-1400)}
-        </pre>
+
+      {/* The plan lands well before the app does, so the wait is spent
+          reading what is coming rather than watching a spinner. */}
+      {loadingState === 'loading-code' && activeSummary() && (
+        <div className="wait-summary">
+          {summary.title && <p className="wait-title display">{summary.title}</p>}
+          <p className="wait-text">{activeSummary()}</p>
+          {streamed && (
+            <p className="wait-progress">
+              {t.buildingNow} {Math.round(streamed.length / 1024)} KB
+            </p>
+          )}
+        </div>
       )}
+
       <p className="hint state-sub">{t.stillWorking}</p>
     </div>
   );
@@ -323,10 +413,13 @@ export default function ContentContainer({
 
   const renderRejection = (err: VideoRejectedError) => (
     <div className="state-panel">
-      <p className="state-title reject-title">{t.rejectTitle}</p>
+      <RefusedIllustration className="state-art" />
+      <p className="state-title reject-title display">{t.rejectTitle}</p>
       <p className="state-detail reject-detail">{rejectionMessage(err)}</p>
     </div>
   );
+
+  const activeSummary = () => (lang === 'uz' ? summary.uz : summary.en);
 
   const renderError = () => (
     <div className="state-panel">
@@ -355,7 +448,14 @@ export default function ContentContainer({
     );
   };
 
-  const renderSpec = () => {
+  /**
+   * The learner-facing tab.
+   *
+   * It used to show the raw build brief -- English, technical, written for a
+   * developer -- inside an app whose users are Uzbek students. The plan is
+   * still reachable, but it is now a disclosure rather than the default.
+   */
+  const renderAbout = () => {
     if (rejection) return renderRejection(rejection);
     if (loadingState === 'loading-spec') return renderProgress();
     if (loadingState === 'error' && !spec) return renderError();
@@ -386,20 +486,72 @@ export default function ContentContainer({
     }
 
     return (
-      <div className="pane">
-        <div className="spec-text">{spec}</div>
-        <div className="pane-actions">
+      <div className="pane about-pane">
+        <div className="about-scroll">
+          {summary.title && <h3 className="about-title display">{summary.title}</h3>}
+          <div className="rule" />
+          <p className="about-heading">{t.aboutHeading}</p>
+          <p className="about-text">{activeSummary() || spec.slice(0, 400)}</p>
+
+          {loadingState === 'ready' && (
+            <div className="variations">
+              <p className="about-heading">{t.variationsTitle}</p>
+              <div className="variation-row">
+                <button
+                  className="button-secondary variation"
+                  disabled={isBusy}
+                  onClick={() => handleVariation('simpler')}>
+                  {t.variationSimpler}
+                </button>
+                <button
+                  className="button-secondary variation"
+                  disabled={isBusy}
+                  onClick={() => handleVariation('visual')}>
+                  {t.variationVisual}
+                </button>
+                <button
+                  className="button-secondary variation"
+                  disabled={isBusy}
+                  onClick={() => handleVariation('quiz')}>
+                  {t.variationQuiz}
+                </button>
+              </div>
+            </div>
+          )}
+
           <button
-            className="button-secondary"
-            disabled={isBusy || !spec}
+            className="button-ghost plan-toggle"
             onClick={() => {
               haptic();
-              setEditedSpec(spec);
-              setIsEditingSpec(true);
+              setShowPlan((open) => !open);
             }}>
-            {t.edit}
+            {showPlan ? `− ${t.tabPlan}` : `+ ${t.tabPlan}`}
           </button>
+
+          {showPlan && (
+            <>
+              <div className="spec-text">{spec}</div>
+              <button
+                className="button-secondary"
+                disabled={isBusy || !spec}
+                onClick={() => {
+                  haptic();
+                  setEditedSpec(spec);
+                  setIsEditingSpec(true);
+                }}>
+                {t.edit}
+              </button>
+            </>
+          )}
         </div>
+
+        {canShare && loadingState === 'ready' && (
+          <div className="pane-actions">
+            <button className="button-primary" onClick={handleShare}>
+              {t.share}
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -436,7 +588,7 @@ export default function ContentContainer({
 
       <div className="tab-body">
         {activeTab === 0 && renderApp()}
-        {activeTab === 1 && renderSpec()}
+        {activeTab === 1 && renderAbout()}
       </div>
 
       <style>{`
@@ -558,6 +710,93 @@ export default function ContentContainer({
           min-height: 0;
           overflow: auto;
           white-space: pre-wrap;
+        }
+
+        .state-art {
+          color: var(--color-hint);
+          height: auto;
+          max-width: 150px;
+          opacity: 0.9;
+        }
+
+        .about-pane {
+          gap: 0.9rem;
+        }
+
+        .about-scroll {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          gap: 0.75rem;
+          min-height: 0;
+          overflow: auto;
+        }
+
+        .about-title {
+          font-size: 1.25rem;
+        }
+
+        .about-heading {
+          color: var(--color-hint);
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .about-text {
+          font-size: 1rem;
+          line-height: 1.6;
+        }
+
+        .variations {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .variation-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .variation {
+          flex: 1 1 30%;
+          font-size: 0.85rem;
+          font-weight: 500;
+          min-height: 40px;
+          padding: 0.4rem 0.6rem;
+        }
+
+        .plan-toggle {
+          align-self: flex-start;
+          padding-left: 0;
+        }
+
+        .wait-summary {
+          background: var(--color-surface);
+          border-radius: var(--radius);
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          max-width: 42ch;
+          padding: 0.9rem 1rem;
+          text-align: left;
+        }
+
+        .wait-title {
+          font-size: 1.05rem;
+        }
+
+        .wait-text {
+          font-size: 0.92rem;
+          line-height: 1.55;
+        }
+
+        .wait-progress {
+          color: var(--color-hint);
+          font-size: 0.75rem;
         }
 
         .state-panel {

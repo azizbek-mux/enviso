@@ -25,13 +25,21 @@
 
   --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', system-ui, sans-serif;
+  /* Georgia carries the fallback: it has the Uzbek oʻ / gʻ modifier letters
+     and ships everywhere, so a heading never falls back to a tofu box. */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
     'Liberation Mono', monospace;
+
+  /* One warm accent of our own, used for the mark and section rules only.
+     Buttons keep Telegram's accent so the app still belongs to its client. */
+  --color-brand: #b8873b;
 
   color-scheme: light dark;
 }
 
 :root[data-theme='dark'] {
+  --color-brand: #d8a75b;
   --color-background: #17212b;
   --color-surface: #232e3c;
   --color-text: #ffffff;
@@ -171,4 +179,21 @@ textarea::placeholder {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Headings carry the display face; everything else stays on the system stack. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+/* A short rule under a heading, in the brand accent. */
+.rule {
+  background: var(--color-brand);
+  border-radius: 2px;
+  height: 3px;
+  opacity: 0.85;
+  width: 34px;
 }

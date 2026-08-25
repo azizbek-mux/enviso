@@ -19,6 +19,16 @@ export type Source =
   | {kind: 'paper'; via: 'url'; url: string}
   | {kind: 'paper'; via: 'file'; name: string; mimeType: string; base64: string};
 
+/**
+ * The subset of sources that can be described by a link alone.
+ *
+ * An uploaded PDF lives on one device with no server to put it on, so only
+ * these can be shared or restored from a URL.
+ */
+export type LinkSource =
+  | {kind: 'video'; url: string}
+  | {kind: 'paper'; via: 'url'; url: string};
+
 /** Stable identity for a source, used to key the generating component. */
 export function sourceLabel(source: Source): string {
   if (source.kind === 'video') return source.url;

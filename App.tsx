@@ -4,6 +4,8 @@
  */
 
 import ContentContainer from '@/components/ContentContainer';
+import HistoryList from '@/components/HistoryList';
+import {EmptyIllustration, PaperIllustration} from '@/components/Illustrations';
 import KeyGate from '@/components/KeyGate';
 import {useSettings} from '@/context';
 import {LANGUAGES, type Lang} from '@/lib/i18n';
@@ -17,7 +19,15 @@ import {
   looksLikeUrl,
   readFileAsBase64,
 } from '@/lib/source';
-import {haptic, showBackButton} from '@/lib/telegram';
+import {decodeSource} from '@/lib/deeplink';
+import {type HistoryItem, listHistory} from '@/lib/history';
+import {
+  haptic,
+  isTelegram,
+  setMainButton,
+  showBackButton,
+  startParam,
+} from '@/lib/telegram';
 import {
   getVideoDurationSeconds,
   getYoutubeEmbedUrl,
@@ -32,6 +42,8 @@ export default function App() {
   const [source, setSource] = useState<Source | null>(null);
   const [pdf, setPdf] = useState<{name: string; mimeType: string; base64: string} | null>(null);
   const [linkHint, setLinkHint] = useState<LinkHint | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [restored, setRestored] = useState<HistoryItem | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [reloadCounter, setReloadCounter] = useState(0);
@@ -136,6 +148,26 @@ export default function App() {
     }
   };
 
+  const mainButtonLabel = checkingVideo
+    ? t.checkingVideo
+    : contentLoading
+      ? t.generating
+      : source
+        ? t.regenerate
+        : mode === 'video'
+          ? t.generate
+          : t.generatePaper;
+
+  // Telegram's bottom bar is where a Mini App user reaches for the primary
+  // action, so the in-page button steps aside whenever it exists.
+  useEffect(() => {
+    if (!isTelegram || panelOpen) return;
+    return setMainButton(
+      {text: mainButtonLabel, visible: true, busy: busy},
+      () => void handleSubmit(),
+    );
+  });
+
   const hintMessage = (hint: LinkHint) =>
     ({
       paywall: t.hintPaywall,
@@ -155,8 +187,49 @@ export default function App() {
     if (inputRef.current) inputRef.current.value = '';
   };
 
+  const refreshHistory = () => {
+    void listHistory().then(setHistory);
+  };
+
+  useEffect(refreshHistory, []);
+
+  // Reload the list whenever a generation finishes, so a new app appears.
+  useEffect(() => {
+    if (!contentLoading) refreshHistory();
+  }, [contentLoading]);
+
+  /** Opened from a shared link: build straight from what the sender chose. */
+  useEffect(() => {
+    const param = startParam();
+    if (!param) return;
+
+    const shared = decodeSource(param);
+    if (!shared) return;
+
+    // decodeSource only ever yields link-backed sources, since a PDF cannot
+    // travel through a start parameter.
+    setMode(shared.kind);
+    if (inputRef.current) inputRef.current.value = shared.url;
+    setSource(shared);
+    setReloadCounter((c) => c + 1);
+  }, []);
+
+  const openFromHistory = (item: HistoryItem) => {
+    haptic();
+    setRestored(item);
+    setSource(
+      item.kind === 'video'
+        ? {kind: 'video', url: item.sourceUrl ?? ''}
+        : item.sourceUrl
+          ? {kind: 'paper', via: 'url', url: item.sourceUrl}
+          : {kind: 'paper', via: 'file', name: item.title, mimeType: 'application/pdf', base64: ''},
+    );
+    setReloadCounter((c) => c + 1);
+  };
+
   const start = (next: Source) => {
     setPendingSource(null);
+    setRestored(null);
     setSource(next);
     // Bumping the key remounts ContentContainer, which restarts generation.
     setReloadCounter((c) => c + 1);
@@ -183,7 +256,7 @@ export default function App() {
   const header = (
     <header className="header">
       <div className="brand">
-        <h1 className="title">Video &rarr; Learning App</h1>
+        <h1 className="title display">Video &rarr; Learning App</h1>
         <p className="hint subtitle">{t.subtitle}</p>
       </div>
       <div className="header-actions">
@@ -295,20 +368,14 @@ export default function App() {
 
         {urlError && <p className="field-error">{urlError}</p>}
 
-        <button
-          className="button-primary generate"
-          onClick={handleSubmit}
-          disabled={busy}>
-          {checkingVideo
-            ? t.checkingVideo
-            : contentLoading
-              ? t.generating
-              : source
-                ? t.regenerate
-                : mode === 'video'
-                  ? t.generate
-                  : t.generatePaper}
-        </button>
+        {!isTelegram && (
+          <button
+            className="button-primary generate"
+            onClick={handleSubmit}
+            disabled={busy}>
+            {mainButtonLabel}
+          </button>
+        )}
       </section>
 
       {mode === 'video' && (
@@ -332,10 +399,16 @@ export default function App() {
           <ContentContainer
             key={reloadCounter}
             source={source}
+            restored={restored ?? undefined}
             onLoadingStateChange={setContentLoading}
           />
         ) : (
           <div className="output-placeholder">
+            {mode === 'video' ? (
+              <EmptyIllustration className="placeholder-art" />
+            ) : (
+              <PaperIllustration className="placeholder-art" />
+            )}
             <p className="hint">
               {mode === 'video' ? t.contentPlaceholder : t.paperPlaceholderText}
             </p>
@@ -347,6 +420,12 @@ export default function App() {
           </div>
         )}
       </section>
+
+      <HistoryList
+        items={history}
+        onOpen={openFromHistory}
+        onChanged={refreshHistory}
+      />
 
       <Styles />
     </div>
@@ -374,10 +453,14 @@ function Styles() {
       }
 
       .title {
-        font-size: 1.35rem;
-        font-weight: 700;
-        letter-spacing: -0.01em;
-        line-height: 1.2;
+        font-size: 1.4rem;
+      }
+
+      .placeholder-art {
+        color: var(--color-hint);
+        height: auto;
+        max-width: 140px;
+        opacity: 0.85;
       }
 
       .subtitle {

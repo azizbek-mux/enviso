@@ -81,7 +81,16 @@ function Providers({children}: {children: React.ReactNode}) {
 
 initTelegram();
 
-const root = ReactDOM.createRoot(document.getElementById('root')!);
+const container = document.getElementById('root')!;
+
+// Vite re-executes this module on hot reload, and calling createRoot twice on
+// the same node warns and detaches the old tree. Keeping the root on the
+// container means a reload re-renders rather than re-mounts.
+interface RootHost extends HTMLElement {
+  _root?: ReactDOM.Root;
+}
+const host = container as RootHost;
+const root = (host._root ??= ReactDOM.createRoot(container));
 // Deliberately not wrapped in StrictMode: its double-invoked effects would
 // fire a second video generation on every mount, and the user pays for that
 // out of their own Gemini quota.

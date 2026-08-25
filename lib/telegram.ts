@@ -25,7 +25,10 @@ interface ThemeParams {
 interface TelegramWebApp {
   version: string;
   initData: string;
-  initDataUnsafe: {user?: {id: number; language_code?: string}};
+  initDataUnsafe: {
+    user?: {id: number; language_code?: string};
+    start_param?: string;
+  };
   colorScheme: 'light' | 'dark';
   themeParams: ThemeParams;
   viewportStableHeight: number;
@@ -41,6 +44,20 @@ interface TelegramWebApp {
     impactOccurred: (style: string) => void;
     notificationOccurred: (type: string) => void;
   };
+  MainButton?: {
+    setParams: (params: {
+      text?: string;
+      is_visible?: boolean;
+      is_active?: boolean;
+      color?: string;
+      text_color?: string;
+    }) => void;
+    showProgress: (leaveActive?: boolean) => void;
+    hideProgress: () => void;
+    onClick: (handler: () => void) => void;
+    offClick: (handler: () => void) => void;
+  };
+  openTelegramLink?: (url: string) => void;
   BackButton?: {
     show: () => void;
     hide: () => void;
@@ -171,6 +188,59 @@ export function showBackButton(handler: () => void): () => void {
     back.offClick(handler);
     back.hide();
   };
+}
+
+export interface MainButtonState {
+  text: string;
+  visible: boolean;
+  /** Shows the spinner and blocks presses. */
+  busy?: boolean;
+}
+
+/**
+ * Drive Telegram's bottom action button.
+ *
+ * A Mini App that uses it stops feeling like a web page in a frame, which is
+ * why the in-page button hides whenever this one is available.
+ *
+ * Returns a cleanup function; a no-op outside Telegram.
+ */
+export function setMainButton(
+  state: MainButtonState,
+  handler: () => void,
+): () => void {
+  const button = tg?.MainButton;
+  if (!button) return () => {};
+
+  button.onClick(handler);
+  button.setParams({
+    text: state.text,
+    is_visible: state.visible,
+    is_active: !state.busy,
+  });
+  if (state.busy) button.showProgress(false);
+  else button.hideProgress();
+
+  return () => {
+    button.offClick(handler);
+    button.setParams({is_visible: false});
+    button.hideProgress();
+  };
+}
+
+/** Hand a message to Telegram's own share sheet. */
+export function shareToChat(url: string, text: string) {
+  const share = `https://t.me/share/url?url=${encodeURIComponent(
+    url,
+  )}&text=${encodeURIComponent(text)}`;
+
+  if (tg?.openTelegramLink) tg.openTelegramLink(share);
+  else globalThis.open?.(share, '_blank', 'noopener');
+}
+
+/** The startapp payload this session was opened with, if any. */
+export function startParam(): string | undefined {
+  return tg?.initDataUnsafe?.start_param;
 }
 
 export function haptic(style: 'light' | 'medium' | 'heavy' = 'light') {

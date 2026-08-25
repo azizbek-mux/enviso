@@ -14,6 +14,9 @@ FIRST, screen the attached video and report on it honestly:
 - "contentKind": one of "educational", "music", "entertainment", "promotional", "other". Choose "music" for anything whose point is a song or performance, even if it is well made. Choose "educational" only when the video is genuinely trying to teach or explain something.
 - "audioQuality": "clear" if the speech is easy to follow; "unclear" if it is drowned in noise or music, heavily distorted, or largely unintelligible; "none" if there is no speech at all.
 - "teachable": true only if this video contains a specific idea a learner could practise with an interactive app.
+- "title": a short title for what this teaches, in English.
+- "summaryEn": two or three sentences, in English, telling a learner what the app you are about to design will teach them and what they will do in it. Address the learner directly. No jargon, no mention of specs or code.
+- "summaryUz": the same summary in natural Latin-script Uzbek, using the characters oʻ and gʻ (U+02BB) rather than a plain apostrophe. Not a literal translation -- write it as an Uzbek speaker would.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. Saying no to an unsuitable video is far more useful than producing a confident learning app built on something you could not properly hear or understand.
@@ -57,6 +60,9 @@ export const SPEC_RESPONSE_SCHEMA = {
     },
     audioQuality: {type: 'string', enum: ['clear', 'unclear', 'none']},
     teachable: {type: 'boolean'},
+    title: {type: 'string'},
+    summaryEn: {type: 'string'},
+    summaryUz: {type: 'string'},
     reason: {type: 'string'},
     spec: {
       type: 'string',
@@ -158,6 +164,8 @@ FIRST, screen the publication provided (attached as a file, or at the URL given 
 - "audioQuality": "clear" if you could read the full text, "unclear" if you could only reach an abstract, a paywall, or a scanned page you could not parse reliably, "none" if you could not read it at all.
 - "teachable": true only if there is a specific, concrete mechanism, method or finding that an interactive explanation could make clearer.
 - "title": the publication's title, as printed.
+- "summaryEn": two or three sentences, in English, telling a reader what the explainer you are about to design will show them and what they will be able to try in it. Address the reader directly. No jargon, no mention of specs or code.
+- "summaryUz": the same summary in natural Latin-script Uzbek, using the characters oʻ and gʻ (U+02BB) rather than a plain apostrophe. Not a literal translation -- write it as an Uzbek speaker would.
 - "reason": one short sentence explaining your judgement.
 
 Be strict. If you reached only an abstract or a landing page, say so with "unclear" rather than inventing the contents of a paper you did not read. A confident explanation of a paper you could not see is far worse than an honest refusal.
@@ -201,6 +209,8 @@ export const PAPER_RESPONSE_SCHEMA = {
     audioQuality: {type: 'string', enum: ['clear', 'unclear', 'none']},
     teachable: {type: 'boolean'},
     title: {type: 'string'},
+    summaryEn: {type: 'string'},
+    summaryUz: {type: 'string'},
     reason: {type: 'string'},
     spec: {type: 'string'},
   },
@@ -216,4 +226,29 @@ export const PAPER_RESPONSE_SCHEMA = {
  */
 export const JSON_ONLY_INSTRUCTION = `
 
-Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "reason" (string), "spec" (string).`;
+Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "summaryEn" (string), "summaryUz" (string), "reason" (string), "spec" (string).`;
+
+/* -------------------------------------------------------------------------- */
+/* Variations                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type VariationKind = 'simpler' | 'visual' | 'quiz';
+
+/**
+ * A nudge appended to an existing plan.
+ *
+ * Rebuilding from the same plan costs one call rather than two, since the
+ * source never has to be read again -- which is what makes "try another
+ * version" cheap enough to offer at all.
+ */
+export const VARIATIONS: Record<VariationKind, string> = {
+  simpler: `
+
+REVISION: Make this markedly simpler. Cut every secondary feature and keep only the single core mechanic. Assume a learner meeting this topic for the first time, and shorten all explanatory text.`,
+  visual: `
+
+REVISION: Make this far more visual. Replace explanatory prose with diagrams, animation and direct manipulation wherever possible, so the learner sees the idea behind the words rather than reading about it.`,
+  quiz: `
+
+REVISION: Restructure this as active recall. Build it around questions the learner answers and gets immediate feedback on, with a visible score, rather than around exposition they read.`,
+};

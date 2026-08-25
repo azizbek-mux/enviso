@@ -4,6 +4,7 @@
  */
 
 import Diagnostics from '@/components/Diagnostics';
+import {KeyIllustration} from '@/components/Illustrations';
 import {useSettings} from '@/context';
 import {haptic, notify, openExternal} from '@/lib/telegram';
 import {validateApiKey} from '@/lib/textGeneration';
@@ -67,7 +68,8 @@ export default function KeyGate({onClose, onSaved, pending}: KeyGateProps) {
   return (
     <div className="key-gate">
       <div className="key-card">
-        <h2 className="key-title">{pending ? t.keyNeeded : t.keyTitle}</h2>
+        <h2 className="key-title display">{pending ? t.keyNeeded : t.keyTitle}</h2>
+        <div className="rule" />
         <p className="hint key-intro">{t.keyIntro}</p>
 
         <ol className="key-steps">
@@ -80,6 +82,10 @@ export default function KeyGate({onClose, onSaved, pending}: KeyGateProps) {
             <span>{t.keyStep2}</span>
           </li>
         </ol>
+
+        {/* A picture of the destination removes most of the doubt about
+            whether you are in the right place once you get there. */}
+        <KeyIllustration className="key-art" />
 
         <button
           className="button-secondary key-link"
@@ -160,8 +166,17 @@ export default function KeyGate({onClose, onSaved, pending}: KeyGateProps) {
         }
 
         .key-title {
-          font-size: 1.35rem;
-          font-weight: 700;
+          font-size: 1.4rem;
+        }
+
+        .key-art {
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius);
+          color: var(--color-hint);
+          height: auto;
+          max-width: 100%;
+          padding: 0.5rem;
+          width: 100%;
         }
 
         .key-intro {

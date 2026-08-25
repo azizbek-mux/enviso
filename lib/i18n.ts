@@ -76,7 +76,27 @@ const en = {
   paperStep3: 'Explore the mechanism, in Uzbek or English',
 
   tabApp: 'App',
-  tabSpec: 'Plan',
+  tabSpec: 'About',
+  tabPlan: 'Developer plan',
+  aboutHeading: 'What you will learn',
+  buildingNow: 'Building it now...',
+
+  variationsTitle: 'Not quite right?',
+  variationSimpler: 'Simpler',
+  variationVisual: 'More visual',
+  variationQuiz: 'As a quiz',
+
+  share: 'Share',
+  shareText: 'I made an interactive learning app from this:',
+  saveFailed: 'Could not save this to your history',
+
+  historyTitle: 'Your apps',
+  historyEmpty: 'Apps you build are kept here',
+  historyOpen: 'Open',
+  historyDelete: 'Delete',
+  historyClear: 'Clear all',
+  historyVideo: 'From a video',
+  historyPaper: 'From a paper',
 
   loadingSpec: 'Watching the video and writing a plan...',
   loadingPaper: 'Reading the publication and writing a plan...',
@@ -183,7 +203,27 @@ const uz: typeof en = {
   paperStep3: 'Mexanizmni oʻzbek yoki ingliz tilida oʻrganing',
 
   tabApp: 'Ilova',
-  tabSpec: 'Reja',
+  tabSpec: 'Haqida',
+  tabPlan: 'Dasturchi rejasi',
+  aboutHeading: 'Nimani oʻrganasiz',
+  buildingNow: 'Hozir yasalmoqda...',
+
+  variationsTitle: 'Toʻgʻri kelmadimi?',
+  variationSimpler: 'Soddaroq',
+  variationVisual: 'Koʻproq vizual',
+  variationQuiz: 'Test koʻrinishida',
+
+  share: 'Ulashish',
+  shareText: 'Men shundan interaktiv oʻquv ilova yasadim:',
+  saveFailed: 'Buni tarixga saqlab boʻlmadi',
+
+  historyTitle: 'Ilovalaringiz',
+  historyEmpty: 'Siz yasagan ilovalar shu yerda saqlanadi',
+  historyOpen: 'Ochish',
+  historyDelete: 'Oʻchirish',
+  historyClear: 'Hammasini tozalash',
+  historyVideo: 'Videodan',
+  historyPaper: 'Maqoladan',
 
   loadingSpec: 'Video koʻrilmoqda va reja tuzilmoqda...',
   loadingPaper: 'Maqola oʻqilmoqda va reja tuzilmoqda...',
