@@ -76,7 +76,8 @@ Every element whose text the reader sees carries BOTH languages as attributes:
 const SANDBOX_CONTRACT = `RUNTIME -- a sandboxed iframe on a phone.
 - Do NOT use localStorage, sessionStorage, cookies or IndexedDB. Access throws and breaks the page.
 - Do NOT fetch anything, and load no remote asset except three.js through the importmap the shell declares.
-- The page must never scroll sideways. Interactive targets at least 44x44px. Never rely on hover.`;
+- The page must never scroll sideways. Interactive targets at least 44x44px. Never rely on hover.
+- Never navigate. No <a href> to another page, no location changes, no target="_blank" except a real external citation link. In-page links are handled for you by the shell.`;
 
 /**
  * First call: the document everything else slots into.
@@ -109,6 +110,24 @@ export function buildShellPrompt(
     "    var btn = e.target.closest('[data-lang-btn]');",
     "    if (btn) applyLanguage(btn.getAttribute('data-lang-btn'));",
     '  });',
+    '',
+    '  // In-page links must never navigate: this document is rendered through',
+    '  // srcdoc, where a fragment navigation discards the page and leaves a',
+    '  // blank frame. Scroll programmatically instead.',
+    "  document.addEventListener('click', function(e){",
+    "    var link = e.target.closest && e.target.closest('a[href^=\"#\"]');",
+    '    if (!link) return;',
+    '    e.preventDefault();',
+    "    var href = link.getAttribute('href');",
+    "    if (href === '#'){ window.scrollTo({top:0, behavior:'smooth'}); return; }",
+    '    var target = document.getElementById(href.slice(1));',
+    '    if (!target) return;',
+    "    var header = document.querySelector('header');",
+    '    var offset = header ? header.getBoundingClientRect().height + 16 : 24;',
+    '    var top = target.getBoundingClientRect().top + window.pageYOffset - offset;',
+    "    window.scrollTo({top: top, behavior: 'smooth'});",
+    '  });',
+    '',
     `  applyLanguage('${uiLang}');`,
     '  </script>',
   ].join(NEWLINE);
@@ -133,7 +152,7 @@ PRODUCE a complete, valid HTML document containing:
   {"imports":{"three":"https://unpkg.com/three@0.181.1/build/three.module.js","three/addons/":"https://unpkg.com/three@0.181.1/examples/jsm/"}}
   </script>
 
-4. A slim sticky header with the paper's short title, in-page links to the sections, and a compact language toggle showing O'Z and EN.
+4. A slim sticky header with the paper's short title, in-page links to every section, and a compact language toggle showing O'Z and EN. The links point at the section ids below. Do NOT attach your own click handlers to them -- the script in point 8 already scrolls them, and a plain fragment navigation would blank the page in this runtime. Give the CSS "scroll-behavior: smooth" and a "scroll-padding-top" clear of the header.
 5. A HERO: the paper's full title, its authors, the journal and date, and one sentence stating what was achieved.
 6. A <main> containing these markers, each alone on its own line, in this order and spelled exactly. Put NOTHING between them -- they are placeholders that get replaced:
 

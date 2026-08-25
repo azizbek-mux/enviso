@@ -33,6 +33,7 @@ import {
 } from '@/lib/screening';
 import {type SaveOutcome, saveHtml, toFileName} from '@/lib/download';
 import {saveHistory} from '@/lib/history';
+import {withWorkingNav} from '@/lib/injectNav';
 import {shareLink} from '@/lib/deeplink';
 import {expandPaperUrl, type Source} from '@/lib/source';
 import {currentPalette, haptic, notify, shareToChat} from '@/lib/telegram';
@@ -534,7 +535,7 @@ export default function ContentContainer({
       <div className={fullScreen ? 'preview preview-full' : 'preview'}>
         <iframe
           key={iframeKey}
-          srcDoc={code}
+          srcDoc={withWorkingNav(code)}
           title="generated-app"
           sandbox="allow-scripts allow-popups"
           className="preview-frame"
