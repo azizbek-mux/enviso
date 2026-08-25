@@ -7,7 +7,20 @@ import type {Lang} from '@/lib/i18n';
 
 export const SPEC_FROM_VIDEO_PROMPT = `You are a pedagogist and product designer with deep expertise in crafting engaging learning experiences via interactive web apps.
 
-Examine the contents of the attached video. Then, write a detailed and carefully considered spec for an interactive web app designed to complement the video and reinforce its key idea or ideas. The recipient of the spec does not have access to the video, so the spec must be thorough and self-contained (the spec must not mention that it is based on a video). Here is an example of a spec written in response to a video about functional harmony:
+FIRST, screen the attached video and report on it honestly:
+
+- "language": the primary spoken language, as an English word ("English", "Russian", "Uzbek", "Spanish", ...). Use "None" if nobody speaks.
+- "durationMinutes": the video's length in minutes, as a number.
+- "contentKind": one of "educational", "music", "entertainment", "promotional", "other". Choose "music" for anything whose point is a song or performance, even if it is well made. Choose "educational" only when the video is genuinely trying to teach or explain something.
+- "audioQuality": "clear" if the speech is easy to follow; "unclear" if it is drowned in noise or music, heavily distorted, or largely unintelligible; "none" if there is no speech at all.
+- "teachable": true only if this video contains a specific idea a learner could practise with an interactive app.
+- "reason": one short sentence explaining your judgement.
+
+Be strict. Saying no to an unsuitable video is far more useful than producing a confident learning app built on something you could not properly hear or understand.
+
+THEN, only if "teachable" is true AND "contentKind" is "educational", write the spec. Otherwise set "spec" to an empty string and stop -- do not invent a lesson out of material that does not contain one.
+
+When you do write it: write a detailed and carefully considered spec for an interactive web app designed to complement the video and reinforce its key idea or ideas. The recipient of the spec does not have access to the video, so the spec must be thorough and self-contained (the spec must not mention that it is based on a video). Here is an example of a spec written in response to a video about functional harmony:
 
 "In music, chords create expectations of movement toward certain other chords and resolution towards a tonal center. This is called functional harmony.
 
@@ -22,20 +35,42 @@ SPECIFICATIONS:
 
 The goal of the app that is to be built based on the spec is to enhance understanding through simple and playful design. The provided spec should not be overly complex, i.e., a junior web developer should be able to implement it in a single html file (with all styles and scripts inline). Most importantly, the spec must clearly outline the core mechanics of the app, and those mechanics must be highly effective in reinforcing the given video's key idea(s).
 
-Write the spec in English regardless of the language spoken in the video. The spec is a build brief for a developer, not user-facing text.
+Write the spec in English regardless of the language spoken in the video. The spec is a build brief for a developer, not user-facing text.`;
 
-Provide the result as a JSON object containing a single field called "spec", whose value is the spec for the web app.`;
-
-/** JSON shape the spec model must return, enforced server-side by the API. */
+/**
+ * JSON shape the screening call must return, enforced by the API itself.
+ *
+ * Screening and spec-writing share one request: the expensive part is watching
+ * the video, so asking separately would double the cost of every rejection.
+ */
 export const SPEC_RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
+    language: {
+      type: 'string',
+      description: 'Primary spoken language in English, or "None".',
+    },
+    durationMinutes: {type: 'number', description: 'Video length in minutes.'},
+    contentKind: {
+      type: 'string',
+      enum: ['educational', 'music', 'entertainment', 'promotional', 'other'],
+    },
+    audioQuality: {type: 'string', enum: ['clear', 'unclear', 'none']},
+    teachable: {type: 'boolean'},
+    reason: {type: 'string'},
     spec: {
       type: 'string',
-      description: 'The full specification for the interactive web app.',
+      description: 'The specification, or an empty string if unsuitable.',
     },
   },
-  required: ['spec'],
+  required: [
+    'language',
+    'durationMinutes',
+    'contentKind',
+    'audioQuality',
+    'teachable',
+    'spec',
+  ],
 } as const;
 
 export const CODE_REGION_OPENER = '```';

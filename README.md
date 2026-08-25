@@ -39,10 +39,38 @@ must:
 - survive the length difference between the two languages without breaking
   layout.
 
+## What the app refuses
+
+Not every video makes a good lesson, and a confident learning app built on a
+misheard one is worse for a student than being told no.
+
+| Guard | Rule | Checked |
+|---|---|---|
+| Length | over 30 minutes | in the browser, before any Gemini call |
+| Language | anything but English or Russian | during screening |
+| Music | songs and performances | during screening |
+| Audio | unclear speech, or none at all | during screening |
+| Substance | nothing specific to practise | during screening |
+
+Length is checked client-side with YouTube's iframe player, which needs no API
+key — watching an hour of video is the most expensive request the app can make,
+so refusing it afterwards would already have spent the user's quota. The model
+also reports duration as a backstop, for live streams and any video whose
+length the player cannot read.
+
+The other guards ride along with the call that was already watching the video:
+screening and spec-writing share one request, so a rejection costs no more than
+it has to. Uzbek is excluded on purpose — Gemini understands it far less
+reliably than English or Russian.
+
+Rejections are presented as answers rather than errors: no red, no retry
+button, and a sentence saying what to pick instead.
+
 ## How generation works
 
-1. **Video → plan.** A Flash model watches the video and returns a JSON spec,
-   constrained by a response schema so it cannot drift out of shape.
+1. **Video → screening + plan.** A Flash model watches the video, reports what
+   it is (language, length, kind, audio quality), and writes the spec only if
+   the video passes. A response schema keeps the JSON in shape.
 2. **Plan → app.** The best model the key can reach streams a single
    self-contained HTML document. Streaming matters here: this step takes a
    minute or more, and on a phone visible progress is the difference between
@@ -100,6 +128,7 @@ components/ContentContainer.tsx  generation state machine and the two tabs
 components/KeyGate.tsx           bring-your-own-key onboarding
 components/Diagnostics.tsx       probes what the user's key can actually do
 lib/prompts.ts                   both prompts — the product's behavior lives here
+lib/screening.ts                 the guards, and what counts as an unusable video
 lib/textGeneration.ts            model discovery, streaming, busy-model handling
 lib/telegram.ts                  Mini App SDK wrapper with browser fallbacks
 lib/i18n.ts                      interface strings, uz + en

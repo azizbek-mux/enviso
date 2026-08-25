@@ -10,6 +10,12 @@ import {
   SPEC_RESPONSE_SCHEMA,
   buildSpecAddendum,
 } from '@/lib/prompts';
+import {
+  type RejectionReason,
+  type Screening,
+  VideoRejectedError,
+  assertUsable,
+} from '@/lib/screening';
 import {currentPalette, haptic, notify} from '@/lib/telegram';
 import {
   OverloadedError,
@@ -41,6 +47,7 @@ export default function ContentContainer({
   const [loadingState, setLoadingState] =
     useState<LoadingState>('loading-spec');
   const [error, setError] = useState<string | null>(null);
+  const [rejection, setRejection] = useState<VideoRejectedError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [isEditingSpec, setIsEditingSpec] = useState(false);
@@ -88,11 +95,13 @@ export default function ContentContainer({
         },
       );
 
-      const parsed = parseJSON(response);
-      if (!parsed?.spec) {
-        throw new Error('The model did not return a usable plan. Try again.');
-      }
-      return parsed.spec as string;
+      const screening = parseJSON(response) as Screening;
+      console.info('Video screening:', screening);
+
+      // Throws VideoRejectedError when the video breaks one of the guards.
+      assertUsable(screening);
+
+      return screening.spec;
     },
     [apiKey, t.switchingModel, t.allBusy],
   );
@@ -137,6 +146,7 @@ export default function ContentContainer({
     try {
       setLoadingState('loading-spec');
       setError(null);
+      setRejection(null);
       setNotice(null);
       setSpec('');
       setCode('');
@@ -152,6 +162,14 @@ export default function ContentContainer({
       setLoadingState('ready');
       notify('success');
     } catch (err) {
+      if (err instanceof VideoRejectedError) {
+        console.info('Video rejected:', err.reason, err.detail ?? '');
+        setRejection(err);
+        setLoadingState('error');
+        notify('warning');
+        return;
+      }
+
       console.error('Generation failed:', err);
       setError(
         err instanceof OverloadedError
@@ -234,6 +252,24 @@ export default function ContentContainer({
     </div>
   );
 
+  const rejectionMessage = (err: VideoRejectedError) => {
+    const messages: Record<RejectionReason, string> = {
+      tooLong: t.rejectTooLong,
+      language: t.rejectLanguage,
+      music: t.rejectMusic,
+      noisy: t.rejectNoisy,
+      notEducational: t.rejectNotEducational,
+    };
+    return messages[err.reason].replace('{lang}', err.detail ?? '');
+  };
+
+  const renderRejection = (err: VideoRejectedError) => (
+    <div className="state-panel">
+      <p className="state-title reject-title">{t.rejectTitle}</p>
+      <p className="state-detail reject-detail">{rejectionMessage(err)}</p>
+    </div>
+  );
+
   const renderError = () => (
     <div className="state-panel">
       <p className="state-title">{t.error}</p>
@@ -245,6 +281,7 @@ export default function ContentContainer({
   );
 
   const renderApp = () => {
+    if (rejection) return renderRejection(rejection);
     if (loadingState === 'error') return renderError();
     if (loadingState !== 'ready') return renderProgress();
     return (
@@ -269,6 +306,7 @@ export default function ContentContainer({
   };
 
   const renderSpec = () => {
+    if (rejection) return renderRejection(rejection);
     if (loadingState === 'loading-spec') return renderProgress();
     if (loadingState === 'error' && !spec) return renderError();
 
@@ -468,6 +506,15 @@ export default function ContentContainer({
         .state-text {
           font-size: 1rem;
           font-weight: 600;
+        }
+
+        .reject-title {
+          color: var(--color-text);
+        }
+
+        .reject-detail {
+          font-size: 0.95rem;
+          max-width: 40ch;
         }
 
         .state-title {

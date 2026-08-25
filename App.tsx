@@ -7,8 +7,13 @@ import ContentContainer from '@/components/ContentContainer';
 import KeyGate from '@/components/KeyGate';
 import {useSettings} from '@/context';
 import {LANGUAGES, type Lang} from '@/lib/i18n';
+import {isTooLong} from '@/lib/screening';
 import {haptic} from '@/lib/telegram';
-import {getYoutubeEmbedUrl, validateYoutubeUrl} from '@/lib/youtube';
+import {
+  getVideoDurationSeconds,
+  getYoutubeEmbedUrl,
+  validateYoutubeUrl,
+} from '@/lib/youtube';
 import {useRef, useState} from 'react';
 
 export default function App() {
@@ -19,10 +24,11 @@ export default function App() {
   const [contentLoading, setContentLoading] = useState(false);
   const [reloadCounter, setReloadCounter] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [checkingVideo, setCheckingVideo] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const busy = contentLoading;
+  const busy = contentLoading || checkingVideo;
 
   const handleSubmit = async () => {
     const value = inputRef.current?.value.trim() || '';
@@ -37,6 +43,18 @@ export default function App() {
     const {isValid} = await validateYoutubeUrl(value);
     if (!isValid) {
       setUrlError(t.invalidUrl);
+      return;
+    }
+
+    // Length is checked here, before Gemini sees anything: watching an hour of
+    // video is the most expensive request the app can make, and refusing it
+    // afterwards would already have spent the user's quota.
+    setCheckingVideo(true);
+    const seconds = await getVideoDurationSeconds(value);
+    setCheckingVideo(false);
+
+    if (isTooLong(seconds)) {
+      setUrlError(`${t.rejectTooLong} (${Math.round((seconds ?? 0) / 60)} min)`);
       return;
     }
 
@@ -124,7 +142,13 @@ export default function App() {
           className="button-primary generate"
           onClick={handleSubmit}
           disabled={busy}>
-          {busy ? t.generating : videoUrl ? t.regenerate : t.generate}
+          {checkingVideo
+            ? t.checkingVideo
+            : contentLoading
+              ? t.generating
+              : videoUrl
+                ? t.regenerate
+                : t.generate}
         </button>
       </section>
 

@@ -93,3 +93,103 @@ export async function getYouTubeVideoTitle(url: string) {
     throw new Error('Error: No title found in the response.');
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Duration                                                                   */
+/* -------------------------------------------------------------------------- */
+
+let iframeApiReady: Promise<void> | null = null;
+
+/**
+ * Load YouTube's iframe player API once.
+ *
+ * This is the only way to read a video's length without a YouTube Data API
+ * key, and the whole point of this app is that it needs no key but the user's
+ * own Gemini one.
+ */
+function loadIframeApi(): Promise<void> {
+  if (iframeApiReady) return iframeApiReady;
+
+  iframeApiReady = new Promise((resolve, reject) => {
+    const global = globalThis as any;
+    if (global.YT?.Player) return resolve();
+
+    const previous = global.onYouTubeIframeAPIReady;
+    global.onYouTubeIframeAPIReady = () => {
+      previous?.();
+      resolve();
+    };
+
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    script.async = true;
+    script.onerror = () => reject(new Error('Could not load the YouTube player'));
+    document.head.appendChild(script);
+  });
+
+  return iframeApiReady;
+}
+
+/**
+ * Video length in seconds, or null when it cannot be determined.
+ *
+ * Returns null rather than throwing: a video whose length we cannot read
+ * should still be allowed through, since the screening step reports duration
+ * as a backstop. Blocking on our own uncertainty would be the worse failure.
+ */
+export async function getVideoDurationSeconds(
+  url: string,
+): Promise<number | null> {
+  const videoId = getYouTubeVideoId(url);
+  if (!videoId) return null;
+
+  try {
+    await loadIframeApi();
+  } catch (error) {
+    console.warn('YouTube iframe API unavailable:', error);
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    const host = document.createElement('div');
+    host.style.cssText =
+      'position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden';
+    document.body.appendChild(host);
+
+    let settled = false;
+    let player: {destroy?: () => void} | undefined;
+
+    const finish = (seconds: number | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        player?.destroy?.();
+      } catch {
+        /* the player may already be gone */
+      }
+      host.remove();
+      resolve(seconds);
+    };
+
+    // A player that never becomes ready must not hang the submit button.
+    const timer = setTimeout(() => finish(null), 8000);
+
+    try {
+      player = new (globalThis as any).YT.Player(host, {
+        videoId,
+        events: {
+          onReady: (event: {target: {getDuration: () => number}}) => {
+            const seconds = event.target.getDuration();
+            // Live streams and unplayable videos report 0.
+            finish(seconds > 0 ? seconds : null);
+          },
+          onError: () => finish(null),
+        },
+      });
+    } catch (error) {
+      console.warn('Could not measure video duration:', error);
+      finish(null);
+    }
+  });
+}

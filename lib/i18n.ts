@@ -31,6 +31,19 @@ const en = {
   videoPlaceholder: 'Your video appears here',
   contentPlaceholder: 'Paste a YouTube link or pick an example to begin',
   invalidUrl: 'That does not look like a YouTube link',
+  checkingVideo: 'Checking the video...',
+
+  rejectTitle: 'This video will not work',
+  rejectTooLong:
+    'The video is longer than 30 minutes. Please pick a shorter one - 3 to 15 minutes works best.',
+  rejectLanguage:
+    'Only English and Russian videos are supported for now. This one sounds like {lang}.',
+  rejectMusic:
+    'This looks like a music video rather than a lesson. Pick something that explains or teaches an idea.',
+  rejectNoisy:
+    'The speech is too unclear to learn from. Pick a video with clean audio.',
+  rejectNotEducational:
+    'There is no specific idea here to build a lesson around. Pick a video that explains something.',
 
   tabApp: 'App',
   tabSpec: 'Plan',
@@ -93,6 +106,19 @@ const uz: typeof en = {
   contentPlaceholder:
     'Boshlash uchun YouTube havolasini joylashtiring yoki namunani tanlang',
   invalidUrl: 'Bu YouTube havolasiga oʻxshamaydi',
+  checkingVideo: 'Video tekshirilmoqda...',
+
+  rejectTitle: 'Bu video toʻgʻri kelmaydi',
+  rejectTooLong:
+    'Video 30 daqiqadan uzun. Iltimos, qisqaroqni tanlang - 3-15 daqiqa eng yaxshi natija beradi.',
+  rejectLanguage:
+    'Hozircha faqat ingliz va rus tilidagi videolar qoʻllab-quvvatlanadi. Bu video {lang} tilida koʻrinadi.',
+  rejectMusic:
+    'Bu darsdan koʻra musiqiy videoga oʻxshaydi. Biror gʻoyani tushuntiradigan video tanlang.',
+  rejectNoisy:
+    'Nutq juda noaniq, undan dars tayyorlab boʻlmaydi. Ovozi toza videoni tanlang.',
+  rejectNotEducational:
+    'Bu yerda dars quriladigan aniq gʻoya yoʻq. Biror narsani tushuntiradigan video tanlang.',
 
   tabApp: 'Ilova',
   tabSpec: 'Reja',
