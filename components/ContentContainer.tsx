@@ -136,7 +136,11 @@ export default function ContentContainer({
     return {
       prompt:
         SPEC_FROM_PAPER_PROMPT +
-        paperUrlInstruction(expandPaperUrl(source.url)) +
+        paperUrlInstruction(
+          source.candidates?.length
+            ? source.candidates
+            : expandPaperUrl(source.url),
+        ) +
         JSON_ONLY_INSTRUCTION,
       attachments: [],
       config: {tools: [{urlContext: {}}]},
@@ -526,7 +530,9 @@ export default function ContentContainer({
   const renderRejection = (err: VideoRejectedError) => (
     <div className="state-panel">
       <RefusedIllustration className="state-art" />
-      <p className="state-title reject-title display">{t.rejectTitle}</p>
+      <p className="state-title reject-title display">
+        {source.kind === 'paper' ? t.rejectTitlePaper : t.rejectTitle}
+      </p>
       <p className="state-detail reject-detail">{rejectionMessage(err)}</p>
     </div>
   );

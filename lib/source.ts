@@ -16,7 +16,15 @@ export type SourceKind = 'video' | 'paper';
  */
 export type Source =
   | {kind: 'video'; url: string}
-  | {kind: 'paper'; via: 'url'; url: string}
+  | {
+      kind: 'paper';
+      via: 'url';
+      url: string;
+      /** Full-text addresses resolved from the link, best first. */
+      candidates?: string[];
+      /** The paper's real title, once a lookup has confirmed it. */
+      title?: string;
+    }
   | {kind: 'paper'; via: 'file'; name: string; mimeType: string; base64: string};
 
 /**

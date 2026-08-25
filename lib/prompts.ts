@@ -262,7 +262,7 @@ The publication is at this URL. Retrieve and read it before answering: ${urls[0]
 
   return `
 
-The publication can be reached at the addresses below. They are the same paper. Retrieve them and work from whichever gives you the full text; if the first is only a redirect, a landing page or an abstract, try the next before concluding that the full text is unavailable.
+The publication can be reached at the addresses below. They are the same paper, listed with the most likely full text first. Retrieve them and work from whichever gives you the complete article; if one is only a redirect, a landing page or an abstract, try the next before concluding that the full text is unavailable.
 
 ${urls.map((url) => `- ${url}`).join(NEWLINE)}`;
 }

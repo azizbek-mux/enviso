@@ -37,6 +37,8 @@ const en = {
   checkingVideo: 'Checking the video...',
 
   rejectTitle: 'This video will not work',
+  rejectTitlePaper: 'This publication will not work',
+  paperFound: 'Found',
   rejectTooLong:
     'The video is longer than 30 minutes. Please pick a shorter one - 3 to 15 minutes works best.',
   rejectLanguage:
@@ -170,6 +172,8 @@ const uz: typeof en = {
   checkingVideo: 'Video tekshirilmoqda...',
 
   rejectTitle: 'Bu video toʻgʻri kelmaydi',
+  rejectTitlePaper: 'Bu nashr toʻgʻri kelmaydi',
+  paperFound: 'Topildi',
   rejectTooLong:
     'Video 30 daqiqadan uzun. Iltimos, qisqaroqni tanlang - 3-15 daqiqa eng yaxshi natija beradi.',
   rejectLanguage:

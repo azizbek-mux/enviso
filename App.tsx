@@ -9,6 +9,7 @@ import {EmptyIllustration, PaperIllustration} from '@/components/Illustrations';
 import KeyGate from '@/components/KeyGate';
 import {useSettings} from '@/context';
 import {LANGUAGES, type Lang} from '@/lib/i18n';
+import {lookupPaper} from '@/lib/paperLookup';
 import {isTooLong} from '@/lib/screening';
 import {
   type LinkHint,
@@ -42,6 +43,7 @@ export default function App() {
   const [source, setSource] = useState<Source | null>(null);
   const [pdf, setPdf] = useState<{name: string; mimeType: string; base64: string} | null>(null);
   const [linkHint, setLinkHint] = useState<LinkHint | null>(null);
+  const [resolved, setResolved] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [restored, setRestored] = useState<HistoryItem | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -115,16 +117,34 @@ export default function App() {
     }
 
     const value = inputRef.current?.value.trim() || '';
-    if (!value) {
-      setUrlError(t.paperNeedInput);
-      return null;
-    }
-    if (!looksLikeUrl(value)) {
+    if (!value || !looksLikeUrl(value)) {
       setUrlError(t.paperNeedInput);
       return null;
     }
 
-    return {kind: 'paper', via: 'url', url: value};
+    // A PubMed page is only ever an abstract and a DOI is only a redirect, so
+    // look the paper up and hand the model somewhere the full text lives.
+    setCheckingVideo(true);
+    const record = await lookupPaper(value);
+    setCheckingVideo(false);
+
+    if (record?.title) setResolved(record.title);
+
+    if (record?.openAccess) {
+      // The warning was about the link, and the link has been replaced.
+      setLinkHint(null);
+    } else if (record) {
+      // Known in advance, so say it now rather than after a spent generation.
+      setLinkHint('paywall');
+    }
+
+    return {
+      kind: 'paper',
+      via: 'url',
+      url: value,
+      candidates: record?.candidates,
+      title: record?.title,
+    };
   };
 
   const handleFile = async (file: File | undefined) => {
@@ -184,6 +204,7 @@ export default function App() {
     setPdf(null);
     setUrlError(null);
     setLinkHint(null);
+    setResolved(null);
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -338,12 +359,19 @@ export default function App() {
           disabled={busy}
           onChange={(e) => {
             setUrlError(null);
+            setResolved(null);
             setLinkHint(
               mode === 'paper' && !pdf ? linkHintFor(e.target.value) : null,
             );
           }}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
         />
+
+        {resolved && (
+          <p className="field-resolved">
+            {t.paperFound}: {resolved}
+          </p>
+        )}
 
         {linkHint && <p className="field-warning">{hintMessage(linkHint)}</p>}
 
@@ -555,6 +583,15 @@ function Styles() {
       .field-error {
         color: var(--color-error);
         font-size: 0.85rem;
+      }
+
+      .field-resolved {
+        background: var(--color-surface);
+        border-left: 3px solid var(--color-brand);
+        border-radius: 8px;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        padding: 0.55rem 0.7rem;
       }
 
       /* A warning, not a refusal: these links sometimes carry the full text. */
