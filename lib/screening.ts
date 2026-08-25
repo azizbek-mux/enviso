@@ -20,7 +20,9 @@ export type RejectionReason =
   | 'language'
   | 'music'
   | 'noisy'
-  | 'notEducational';
+  | 'notEducational'
+  | 'unreadable'
+  | 'notResearch';
 
 /** A video the app declines to work with, as opposed to a failure. */
 export class VideoRejectedError extends Error {
@@ -39,8 +41,10 @@ export interface Screening {
   language: string;
   durationMinutes?: number;
   contentKind: 'educational' | 'music' | 'entertainment' | 'promotional' | 'other';
+  /** For a paper this reports readability rather than sound. */
   audioQuality: 'clear' | 'unclear' | 'none';
   teachable: boolean;
+  title?: string;
   reason?: string;
   spec: string;
 }
@@ -59,17 +63,20 @@ function normalise(language: string): string {
  * Apply the guards to a screening verdict, throwing on the first failure.
  *
  * Ordered so the user gets the most actionable objection: length and language
- * are things they can fix by choosing a different video, whereas "not
- * teachable" is a judgement they can only argue with.
+ * are things they can fix by choosing a different source, whereas "nothing to
+ * teach" is a judgement they can only argue with.
+ *
+ * Both sources share these rules; only the wording of the refusal differs,
+ * since "the audio is unclear" makes no sense about a PDF.
  */
-export function assertUsable(screening: Screening): void {
-  const {
-    language,
-    durationMinutes,
-    contentKind,
-    audioQuality,
-    teachable,
-  } = screening;
+export function assertUsable(
+  screening: Screening,
+  kind: 'video' | 'paper' = 'video',
+): void {
+  const {language, durationMinutes, contentKind, audioQuality, teachable} =
+    screening;
+
+  const paper = kind === 'paper';
 
   // Backstop for the client-side duration check, which returns null for live
   // streams and whenever the iframe player refuses to load.
@@ -80,12 +87,14 @@ export function assertUsable(screening: Screening): void {
     );
   }
 
-  if (contentKind === 'music') {
+  if (!paper && contentKind === 'music') {
     throw new VideoRejectedError('music');
   }
 
+  // For a paper this means the model reached a paywall, a scan it could not
+  // parse, or nothing at all -- so anything it wrote would be invention.
   if (audioQuality === 'none' || audioQuality === 'unclear') {
-    throw new VideoRejectedError('noisy');
+    throw new VideoRejectedError(paper ? 'unreadable' : 'noisy');
   }
 
   const spoken = normalise(language);
@@ -94,10 +103,10 @@ export function assertUsable(screening: Screening): void {
   }
 
   if (!teachable || contentKind !== 'educational') {
-    throw new VideoRejectedError('notEducational');
+    throw new VideoRejectedError(paper ? 'notResearch' : 'notEducational');
   }
 
   if (!screening.spec?.trim()) {
-    throw new VideoRejectedError('notEducational');
+    throw new VideoRejectedError(paper ? 'notResearch' : 'notEducational');
   }
 }

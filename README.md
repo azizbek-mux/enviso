@@ -1,8 +1,14 @@
 # Video → Learning App
 
-A Telegram Mini App that turns any YouTube video into an interactive learning
-app. Gemini watches the video, writes a plan, then writes a single-file web app
+A Telegram Mini App that turns source material into an interactive learning
+app. Gemini reads the source, writes a plan, then writes a single-file web app
 from that plan — **in Uzbek and English, with a toggle built into the result**.
+
+Two sections, one API key:
+
+- **Video** — a YouTube lesson becomes an app that drills its key idea.
+- **Research** — a paper becomes an interactive explainer of its mechanism,
+  from an uploaded PDF or a link the model retrieves itself.
 
 Based on Aaron Wade's Google AI Studio sample, rebuilt for Telegram.
 
@@ -44,13 +50,15 @@ must:
 Not every video makes a good lesson, and a confident learning app built on a
 misheard one is worse for a student than being told no.
 
-| Guard | Rule | Checked |
+| Guard | Rule | Applies to |
 |---|---|---|
-| Length | over 30 minutes | in the browser, before any Gemini call |
-| Language | anything but English or Russian | during screening |
-| Music | songs and performances | during screening |
-| Audio | unclear speech, or none at all | during screening |
-| Substance | nothing specific to practise | during screening |
+| Length | over 30 minutes | video, checked in the browser before any Gemini call |
+| Language | anything but English or Russian | both |
+| Music | songs and performances | video |
+| Audio | unclear speech, or none at all | video |
+| Readability | only an abstract or paywall reachable | research |
+| Kind | not a paper, preprint or thesis | research |
+| Substance | nothing specific to practise | both |
 
 Length is checked client-side with YouTube's iframe player, which needs no API
 key — watching an hour of video is the most expensive request the app can make,
@@ -128,7 +136,8 @@ components/ContentContainer.tsx  generation state machine and the two tabs
 components/KeyGate.tsx           bring-your-own-key onboarding
 components/Diagnostics.tsx       probes what the user's key can actually do
 lib/prompts.ts                   both prompts — the product's behavior lives here
-lib/screening.ts                 the guards, and what counts as an unusable video
+lib/screening.ts                 the guards, and what counts as an unusable source
+lib/source.ts                    what a generation is built from: video, PDF, or link
 lib/textGeneration.ts            model discovery, streaming, busy-model handling
 lib/telegram.ts                  Mini App SDK wrapper with browser fallbacks
 lib/i18n.ts                      interface strings, uz + en

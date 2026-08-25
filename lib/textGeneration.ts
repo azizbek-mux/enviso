@@ -64,7 +64,8 @@ interface GenerateOptions {
   apiKey: string;
   modelName: string;
   prompt: string;
-  videoUrl?: string;
+  /** Anything the prompt refers to: a video, a PDF, nothing at all. */
+  attachments?: Part[];
   temperature?: number;
   config?: GenerateContentConfig;
 }
@@ -281,12 +282,18 @@ export async function acrossModels<T>(
 /* Generation                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function buildParts(prompt: string, videoUrl?: string): Part[] {
-  const parts: Part[] = [{text: prompt}];
-  if (videoUrl) {
-    parts.push({fileData: {mimeType: 'video/mp4', fileUri: videoUrl}});
-  }
-  return parts;
+function buildParts(prompt: string, attachments: Part[] = []): Part[] {
+  return [{text: prompt}, ...attachments];
+}
+
+/** A YouTube video, referenced by URL rather than uploaded. */
+export function videoPart(url: string): Part {
+  return {fileData: {mimeType: 'video/mp4', fileUri: url}};
+}
+
+/** A file the user picked, sent inline as base64. */
+export function filePart(mimeType: string, base64: string): Part {
+  return {inlineData: {mimeType, data: base64}};
 }
 
 /** Google returns its errors as a JSON blob; show the sentence, not the blob. */
@@ -366,7 +373,7 @@ function checkCandidate(response: {
 
 /** One-shot generation. Used for the spec, which is small and needs JSON. */
 export async function generateText(options: GenerateOptions): Promise<string> {
-  const {apiKey, modelName, prompt, videoUrl, temperature = 0.75} = options;
+  const {apiKey, modelName, prompt, attachments, temperature = 0.75} = options;
   if (!apiKey) throw new AuthError('Gemini API key is missing');
 
   const ai = new GoogleGenAI({apiKey});
@@ -374,7 +381,7 @@ export async function generateText(options: GenerateOptions): Promise<string> {
   try {
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
+      contents: [{role: 'user', parts: buildParts(prompt, attachments)}],
       config: {temperature, ...options.config},
     });
     checkCandidate(response);
@@ -397,7 +404,7 @@ export async function generateTextStream(
     apiKey,
     modelName,
     prompt,
-    videoUrl,
+    attachments,
     temperature = 0.75,
     onChunk,
   } = options;
@@ -413,7 +420,7 @@ export async function generateTextStream(
   try {
     const stream = await ai.models.generateContentStream({
       model: modelName,
-      contents: [{role: 'user', parts: buildParts(prompt, videoUrl)}],
+      contents: [{role: 'user', parts: buildParts(prompt, attachments)}],
       config: {temperature, ...options.config},
     });
 

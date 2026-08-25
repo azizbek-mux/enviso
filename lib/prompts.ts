@@ -136,3 +136,84 @@ Use these exact values as the base palette. Derived shades are fine, but the app
 
 Keep the design simple, playful, and focused on the core mechanic. Working interactivity matters more than decoration.`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Research papers                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Screening plus plan for a research publication.
+ *
+ * Deliberately parallel to the video prompt: same screen-first discipline,
+ * same JSON shape, so both sources flow through one pipeline. The brief asks
+ * for an explanatory narrative rather than a quiz, because the thing a paper
+ * most needs is for its central mechanism to become visible.
+ */
+export const SPEC_FROM_PAPER_PROMPT = `You are a science communicator and product designer who turns research publications into interactive explanatory web experiences.
+
+FIRST, screen the publication provided (attached as a file, or at the URL given below) and report on it honestly:
+
+- "language": the language the publication is written in, as an English word ("English", "Russian", "Uzbek", ...).
+- "contentKind": "educational" for a genuine research paper, preprint, thesis, or serious technical report. Use "promotional" for marketing or press material, and "other" for anything else, including a page you could not actually read.
+- "audioQuality": "clear" if you could read the full text, "unclear" if you could only reach an abstract, a paywall, or a scanned page you could not parse reliably, "none" if you could not read it at all.
+- "teachable": true only if there is a specific, concrete mechanism, method or finding that an interactive explanation could make clearer.
+- "title": the publication's title, as printed.
+- "reason": one short sentence explaining your judgement.
+
+Be strict. If you reached only an abstract or a landing page, say so with "unclear" rather than inventing the contents of a paper you did not read. A confident explanation of a paper you could not see is far worse than an honest refusal.
+
+THEN, only if "teachable" is true AND "contentKind" is "educational", write the spec. Otherwise set "spec" to an empty string and stop.
+
+When you do write it: produce a detailed, self-contained spec for a single-page interactive web experience that explains this publication to a curious reader who is not a specialist. The recipient of the spec has not read the paper, so the spec must carry every fact, number and definition it needs. The spec must:
+
+1. Open by stating the problem the paper attacks, in plain language, and why it was hard.
+2. Explain the core mechanism or method the paper contributes. This is the heart of it.
+3. Include at least one INTERACTIVE diagram or simulation that makes that mechanism visible -- something the reader manipulates and sees respond, not a static picture. Describe precisely what it shows, what the reader controls, and what changes as a result.
+4. Present the key quantitative results, with the actual numbers from the paper, and say plainly what they mean.
+5. State the limitations or open questions the paper itself acknowledges.
+6. Credit the authors and cite the publication.
+
+Aim for the feel of a well-made museum exhibit: serious about the science, generous to the newcomer, and never padded. Every section must earn its place, and the interactive element must teach something a paragraph could not.
+
+Write the spec in English regardless of the publication's language. The spec is a build brief for a developer, not user-facing text.`;
+
+/** Appended when the source is a link rather than an uploaded file. */
+export function paperUrlInstruction(url: string): string {
+  return `
+
+The publication is at this URL. Retrieve and read it before answering: ${url}`;
+}
+
+/**
+ * Schema for the paper screening call.
+ *
+ * Shares the video screening's field names so one guard function judges both.
+ * `durationMinutes` is absent because a paper has no length in minutes.
+ */
+export const PAPER_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    language: {type: 'string'},
+    contentKind: {
+      type: 'string',
+      enum: ['educational', 'music', 'entertainment', 'promotional', 'other'],
+    },
+    audioQuality: {type: 'string', enum: ['clear', 'unclear', 'none']},
+    teachable: {type: 'boolean'},
+    title: {type: 'string'},
+    reason: {type: 'string'},
+    spec: {type: 'string'},
+  },
+  required: ['language', 'contentKind', 'audioQuality', 'teachable', 'spec'],
+} as const;
+
+/**
+ * Asks for the same JSON without a response schema.
+ *
+ * Structured-output mode and server-side tools do not reliably combine, and
+ * the URL path needs the retrieval tool, so that path states the shape in
+ * words and leans on the tolerant parser instead.
+ */
+export const JSON_ONLY_INSTRUCTION = `
+
+Return ONLY a JSON object, with no markdown fence and no commentary, with exactly these fields: "language" (string), "contentKind" (one of "educational", "music", "entertainment", "promotional", "other"), "audioQuality" (one of "clear", "unclear", "none"), "teachable" (boolean), "title" (string), "reason" (string), "spec" (string).`;

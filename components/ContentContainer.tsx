@@ -6,9 +6,13 @@
 import {useSettings} from '@/context';
 import {parseHTML, parseJSON} from '@/lib/parse';
 import {
+  JSON_ONLY_INSTRUCTION,
+  PAPER_RESPONSE_SCHEMA,
+  SPEC_FROM_PAPER_PROMPT,
   SPEC_FROM_VIDEO_PROMPT,
   SPEC_RESPONSE_SCHEMA,
   buildSpecAddendum,
+  paperUrlInstruction,
 } from '@/lib/prompts';
 import {
   type RejectionReason,
@@ -16,18 +20,21 @@ import {
   VideoRejectedError,
   assertUsable,
 } from '@/lib/screening';
+import type {Source} from '@/lib/source';
 import {currentPalette, haptic, notify} from '@/lib/telegram';
 import {
   OverloadedError,
   acrossModels,
+  filePart,
   generateText,
   generateTextStream,
   resolveModels,
+  videoPart,
 } from '@/lib/textGeneration';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
 interface ContentContainerProps {
-  contentBasis: string;
+  source: Source;
   onLoadingStateChange?: (isLoading: boolean) => void;
 }
 
@@ -36,7 +43,7 @@ type LoadingState = 'loading-spec' | 'loading-code' | 'ready' | 'error';
 const TABS = ['app', 'spec'] as const;
 
 export default function ContentContainer({
-  contentBasis,
+  source,
   onLoadingStateChange,
 }: ContentContainerProps) {
   const {t, lang, apiKey} = useSettings();
@@ -68,45 +75,79 @@ export default function ContentContainer({
     );
   }, [loadingState, onLoadingStateChange]);
 
-  const generateSpecFromVideo = useCallback(
-    async (videoUrl: string) => {
-      const models = await resolveModels(apiKey!);
-      const chain = [
-        models.spec,
-        ...models.chain.filter((id) => id !== models.spec),
-      ];
-
-      const response = await acrossModels(
-        chain,
-        (modelName) =>
-          generateText({
-            apiKey: apiKey!,
-            modelName,
-            prompt: SPEC_FROM_VIDEO_PROMPT,
-            videoUrl,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: SPEC_RESPONSE_SCHEMA as never,
-            },
-          }),
-        {
-          onSwitch: (nextModel) =>
-            setNotice(`${t.switchingModel}: ${nextModel}`),
-          onWait: (waitMs) =>
-            setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
+  /**
+   * Build the screening request for whichever source we were given.
+   *
+   * A file or a video can use structured output, but the URL path needs the
+   * retrieval tool, and tools do not combine reliably with a response schema
+   * -- so that one asks for JSON in words and leans on the tolerant parser.
+   */
+  const screeningRequest = useCallback(() => {
+    if (source.kind === 'video') {
+      return {
+        prompt: SPEC_FROM_VIDEO_PROMPT,
+        attachments: [videoPart(source.url)],
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: SPEC_RESPONSE_SCHEMA as never,
         },
-      );
+      };
+    }
 
-      const screening = parseJSON(response) as Screening;
-      console.info('Video screening:', screening);
+    if (source.via === 'file') {
+      return {
+        prompt: SPEC_FROM_PAPER_PROMPT,
+        attachments: [filePart(source.mimeType, source.base64)],
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: PAPER_RESPONSE_SCHEMA as never,
+        },
+      };
+    }
 
-      // Throws VideoRejectedError when the video breaks one of the guards.
-      assertUsable(screening);
+    return {
+      prompt:
+        SPEC_FROM_PAPER_PROMPT +
+        paperUrlInstruction(source.url) +
+        JSON_ONLY_INSTRUCTION,
+      attachments: [],
+      config: {tools: [{urlContext: {}}]},
+    };
+  }, [source]);
 
-      return screening.spec;
-    },
-    [apiKey, t.switchingModel, t.allBusy],
-  );
+  const generateSpecFromSource = useCallback(async () => {
+    const models = await resolveModels(apiKey!);
+    const chain = [
+      models.spec,
+      ...models.chain.filter((id) => id !== models.spec),
+    ];
+    const request = screeningRequest();
+
+    const response = await acrossModels(
+      chain,
+      (modelName) =>
+        generateText({
+          apiKey: apiKey!,
+          modelName,
+          prompt: request.prompt,
+          attachments: request.attachments,
+          config: request.config,
+        }),
+      {
+        onSwitch: (nextModel) => setNotice(`${t.switchingModel}: ${nextModel}`),
+        onWait: (waitMs) =>
+          setNotice(`${t.allBusy} ${Math.round(waitMs / 1000)}s`),
+      },
+    );
+
+    const screening = parseJSON(response) as Screening;
+    console.info('Screening:', screening);
+
+    // Throws VideoRejectedError when the source breaks one of the guards.
+    assertUsable(screening, source.kind);
+
+    return screening.spec;
+  }, [apiKey, source, screeningRequest, t.switchingModel, t.allBusy]);
 
   const generateCodeFromSpec = useCallback(
     async (baseSpec: string) => {
@@ -154,7 +195,7 @@ export default function ContentContainer({
       setCode('');
       setStreamed('');
 
-      const generatedSpec = await generateSpecFromVideo(contentBasis);
+      const generatedSpec = await generateSpecFromSource();
       setSpec(generatedSpec);
       setLoadingState('loading-code');
 
@@ -183,7 +224,7 @@ export default function ContentContainer({
       setLoadingState('error');
       notify('error');
     }
-  }, [contentBasis, generateSpecFromVideo, generateCodeFromSpec, t.busyGaveUp]);
+  }, [generateSpecFromSource, generateCodeFromSpec, t.busyGaveUp]);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -251,7 +292,11 @@ export default function ContentContainer({
     <div className="state-panel">
       <div className="spinner" />
       <p className="state-text">
-        {loadingState === 'loading-spec' ? t.loadingSpec : t.loadingCode}
+        {loadingState === 'loading-spec'
+          ? source.kind === 'video'
+            ? t.loadingSpec
+            : t.loadingPaper
+          : t.loadingCode}
       </p>
       {notice && <p className="state-notice">{notice}</p>}
       {loadingState === 'loading-code' && streamed && (
@@ -270,6 +315,8 @@ export default function ContentContainer({
       music: t.rejectMusic,
       noisy: t.rejectNoisy,
       notEducational: t.rejectNotEducational,
+      unreadable: t.rejectUnreadable,
+      notResearch: t.rejectNotResearch,
     };
     return messages[err.reason].replace('{lang}', err.detail ?? '');
   };

@@ -47,11 +47,31 @@ const en = {
     'The speech is too unclear to learn from. Pick a video with clean audio.',
   rejectNotEducational:
     'There is no specific idea here to build a lesson around. Pick a video that explains something.',
+  rejectUnreadable:
+    'Only an abstract or a paywall was reachable, so the full text could not be read. Upload the PDF instead.',
+  rejectNotResearch:
+    'This does not look like a research publication. Try a paper, preprint, or thesis.',
+
+  modeVideo: 'Video',
+  modePaper: 'Research',
+  paperLabel: 'Link to the publication',
+  paperPlaceholder: 'https://doi.org/... or arxiv.org/...',
+  paperOr: 'or',
+  paperUpload: 'Choose a PDF',
+  paperChosen: 'Selected',
+  paperTooBig: 'That PDF is too large. The limit is 12 MB.',
+  paperNeedInput: 'Add a link or choose a PDF first',
+  generatePaper: 'Build explainer',
+  paperPlaceholderText: 'Your explainer will appear here',
+  paperStep1: 'Paste a link to a paper, or upload its PDF',
+  paperStep2: 'Gemini reads it and designs an interactive explainer',
+  paperStep3: 'Explore the mechanism, in Uzbek or English',
 
   tabApp: 'App',
   tabSpec: 'Plan',
 
   loadingSpec: 'Watching the video and writing a plan...',
+  loadingPaper: 'Reading the publication and writing a plan...',
   loadingCode: 'Building your app from the plan...',
   stillWorking: 'Still working - this takes a minute or two',
 
@@ -126,11 +146,31 @@ const uz: typeof en = {
     'Nutq juda noaniq, undan dars tayyorlab boʻlmaydi. Ovozi toza videoni tanlang.',
   rejectNotEducational:
     'Bu yerda dars quriladigan aniq gʻoya yoʻq. Biror narsani tushuntiradigan video tanlang.',
+  rejectUnreadable:
+    'Faqat annotatsiya yoki toʻlov devori ochildi, toʻliq matn oʻqilmadi. Buning oʻrniga PDF yuklang.',
+  rejectNotResearch:
+    'Bu ilmiy nashrga oʻxshamaydi. Maqola, preprint yoki dissertatsiya tanlang.',
+
+  modeVideo: 'Video',
+  modePaper: 'Maqola',
+  paperLabel: 'Nashrga havola',
+  paperPlaceholder: 'https://doi.org/... yoki arxiv.org/...',
+  paperOr: 'yoki',
+  paperUpload: 'PDF tanlash',
+  paperChosen: 'Tanlandi',
+  paperTooBig: 'Bu PDF juda katta. Chegara - 12 MB.',
+  paperNeedInput: 'Avval havola qoʻshing yoki PDF tanlang',
+  generatePaper: 'Tushuntiruvchi yaratish',
+  paperPlaceholderText: 'Tushuntiruvchingiz shu yerda paydo boʻladi',
+  paperStep1: 'Maqolaga havola joylashtiring yoki uning PDF faylini yuklang',
+  paperStep2: 'Gemini uni oʻqib, interaktiv tushuntiruvchi loyihalaydi',
+  paperStep3: 'Mexanizmni oʻzbek yoki ingliz tilida oʻrganing',
 
   tabApp: 'Ilova',
   tabSpec: 'Reja',
 
   loadingSpec: 'Video koʻrilmoqda va reja tuzilmoqda...',
+  loadingPaper: 'Maqola oʻqilmoqda va reja tuzilmoqda...',
   loadingCode: 'Reja asosida ilova yasalmoqda...',
   stillWorking: 'Hali ishlanmoqda - bu bir-ikki daqiqa oladi',
 

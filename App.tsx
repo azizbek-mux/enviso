@@ -8,6 +8,13 @@ import KeyGate from '@/components/KeyGate';
 import {useSettings} from '@/context';
 import {LANGUAGES, type Lang} from '@/lib/i18n';
 import {isTooLong} from '@/lib/screening';
+import {
+  MAX_PDF_BYTES,
+  type Source,
+  type SourceKind,
+  looksLikeUrl,
+  readFileAsBase64,
+} from '@/lib/source';
 import {haptic, showBackButton} from '@/lib/telegram';
 import {
   getVideoDurationSeconds,
@@ -19,33 +26,56 @@ import {useEffect, useRef, useState} from 'react';
 export default function App() {
   const {t, lang, setLang, apiKey, keyLoading} = useSettings();
 
-  const [videoUrl, setVideoUrl] = useState('');
+  const [mode, setMode] = useState<SourceKind>('video');
+  const [source, setSource] = useState<Source | null>(null);
+  const [pdf, setPdf] = useState<{name: string; mimeType: string; base64: string} | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [reloadCounter, setReloadCounter] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [checkingVideo, setCheckingVideo] = useState(false);
-  // A URL that passed its checks but is waiting for the user to add a key.
-  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  // A source that passed its checks but is waiting for the user to add a key.
+  const [pendingSource, setPendingSource] = useState<Source | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const videoUrl = source?.kind === 'video' ? source.url : '';
 
   const busy = contentLoading || checkingVideo;
 
   const handleSubmit = async () => {
-    const value = inputRef.current?.value.trim() || '';
-    if (!value || busy) {
-      inputRef.current?.focus();
+    if (busy) return;
+    haptic('medium');
+    setUrlError(null);
+
+    const next =
+      mode === 'video' ? await prepareVideo() : await preparePaper();
+    if (!next) return;
+
+    // The key is asked for here rather than on the first screen: by now the
+    // user has chosen something and wants a result, so the detour to AI Studio
+    // buys them one instead of blocking a result they have not imagined yet.
+    if (!apiKey) {
+      setPendingSource(next);
       return;
     }
 
-    haptic('medium');
-    setUrlError(null);
+    start(next);
+  };
+
+  /** Validate a YouTube URL and check its length before anything is spent. */
+  const prepareVideo = async (): Promise<Source | null> => {
+    const value = inputRef.current?.value.trim() || '';
+    if (!value) {
+      inputRef.current?.focus();
+      return null;
+    }
 
     const {isValid} = await validateYoutubeUrl(value);
     if (!isValid) {
       setUrlError(t.invalidUrl);
-      return;
+      return null;
     }
 
     // Length is checked here, before Gemini sees anything: watching an hour of
@@ -57,32 +87,72 @@ export default function App() {
 
     if (isTooLong(seconds)) {
       setUrlError(`${t.rejectTooLong} (${Math.round((seconds ?? 0) / 60)} min)`);
-      return;
+      return null;
     }
 
-    // The key is asked for here rather than on the first screen: by now the
-    // user has chosen a video and wants something, so the detour to AI Studio
-    // buys them a result instead of blocking one they have not imagined yet.
-    if (!apiKey) {
-      setPendingUrl(value);
-      return;
-    }
-
-    start(value);
+    return {kind: 'video', url: value};
   };
 
-  const start = (url: string) => {
-    setPendingUrl(null);
-    setVideoUrl(url);
+  /** An uploaded PDF wins over a link: it is the more reliable of the two. */
+  const preparePaper = async (): Promise<Source | null> => {
+    if (pdf) {
+      return {kind: 'paper', via: 'file', ...pdf};
+    }
+
+    const value = inputRef.current?.value.trim() || '';
+    if (!value) {
+      setUrlError(t.paperNeedInput);
+      return null;
+    }
+    if (!looksLikeUrl(value)) {
+      setUrlError(t.paperNeedInput);
+      return null;
+    }
+
+    return {kind: 'paper', via: 'url', url: value};
+  };
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setUrlError(null);
+
+    if (file.size > MAX_PDF_BYTES) {
+      setPdf(null);
+      setUrlError(t.paperTooBig);
+      return;
+    }
+
+    try {
+      setPdf(await readFileAsBase64(file));
+      haptic();
+    } catch (error) {
+      console.error('Could not read the PDF:', error);
+      setUrlError(t.paperTooBig);
+    }
+  };
+
+  const switchMode = (next: SourceKind) => {
+    if (next === mode) return;
+    haptic();
+    setMode(next);
+    setSource(null);
+    setPdf(null);
+    setUrlError(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  const start = (next: Source) => {
+    setPendingSource(null);
+    setSource(next);
     // Bumping the key remounts ContentContainer, which restarts generation.
     setReloadCounter((c) => c + 1);
   };
 
-  const panelOpen = showSettings || pendingUrl !== null;
+  const panelOpen = showSettings || pendingSource !== null;
 
   const closePanel = () => {
     setShowSettings(false);
-    setPendingUrl(null);
+    setPendingSource(null);
   };
 
   // Telegram's own back button is where a Mini App user looks first.
@@ -136,10 +206,10 @@ export default function App() {
       <div className="app">
         {header}
         <KeyGate
-          key={pendingUrl ? 'gate' : 'settings'}
-          pending={pendingUrl !== null}
+          key={pendingSource ? 'gate' : 'settings'}
+          pending={pendingSource !== null}
           onClose={closePanel}
-          onSaved={pendingUrl ? () => start(pendingUrl) : undefined}
+          onSaved={pendingSource ? () => start(pendingSource) : undefined}
         />
         <Styles />
       </div>
@@ -150,23 +220,58 @@ export default function App() {
     <div className="app">
       {header}
 
+      <nav className="mode-switch" role="tablist">
+        {(['video', 'paper'] as const).map((option) => (
+          <button
+            key={option}
+            role="tab"
+            aria-selected={mode === option}
+            className={mode === option ? 'mode-option active' : 'mode-option'}
+            onClick={() => switchMode(option)}>
+            {option === 'video' ? t.modeVideo : t.modePaper}
+          </button>
+        ))}
+      </nav>
+
       <section className="controls">
-        <label className="field-label" htmlFor="youtube-url">
-          {t.inputLabel}
+        <label className="field-label" htmlFor="source-url">
+          {mode === 'video' ? t.inputLabel : t.paperLabel}
         </label>
         <input
           ref={inputRef}
-          id="youtube-url"
+          id="source-url"
           type="url"
           inputMode="url"
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          placeholder={t.inputPlaceholder}
+          placeholder={
+            mode === 'video' ? t.inputPlaceholder : t.paperPlaceholder
+          }
           disabled={busy}
           onChange={() => setUrlError(null)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
         />
+
+        {mode === 'paper' && (
+          <div className="upload-row">
+            <span className="hint">{t.paperOr}</span>
+            <button
+              className="button-secondary upload-button"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}>
+              {pdf ? `${t.paperChosen}: ${pdf.name}` : t.paperUpload}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              hidden
+              onChange={(e) => handleFile(e.target.files?.[0])}
+            />
+          </div>
+        )}
+
         {urlError && <p className="field-error">{urlError}</p>}
 
         <button
@@ -177,40 +282,46 @@ export default function App() {
             ? t.checkingVideo
             : contentLoading
               ? t.generating
-              : videoUrl
+              : source
                 ? t.regenerate
-                : t.generate}
+                : mode === 'video'
+                  ? t.generate
+                  : t.generatePaper}
         </button>
       </section>
 
-      <section className="video">
-        {videoUrl ? (
-          <iframe
-            className="video-frame"
-            src={getYoutubeEmbedUrl(videoUrl)}
-            title="source-video"
-            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <div className="video-placeholder hint">{t.videoPlaceholder}</div>
-        )}
-      </section>
+      {mode === 'video' && (
+        <section className="video">
+          {videoUrl ? (
+            <iframe
+              className="video-frame"
+              src={getYoutubeEmbedUrl(videoUrl)}
+              title="source-video"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <div className="video-placeholder hint">{t.videoPlaceholder}</div>
+          )}
+        </section>
+      )}
 
       <section className="output">
-        {videoUrl ? (
+        {source ? (
           <ContentContainer
             key={reloadCounter}
-            contentBasis={videoUrl}
+            source={source}
             onLoadingStateChange={setContentLoading}
           />
         ) : (
           <div className="output-placeholder">
-            <p className="hint">{t.contentPlaceholder}</p>
+            <p className="hint">
+              {mode === 'video' ? t.contentPlaceholder : t.paperPlaceholderText}
+            </p>
             <ol className="intro-steps">
-              <li>{t.introStep1}</li>
-              <li>{t.introStep2}</li>
-              <li>{t.introStep3}</li>
+              <li>{mode === 'video' ? t.introStep1 : t.paperStep1}</li>
+              <li>{mode === 'video' ? t.introStep2 : t.paperStep2}</li>
+              <li>{mode === 'video' ? t.introStep3 : t.paperStep3}</li>
             </ol>
           </div>
         )}
@@ -288,10 +399,48 @@ function Styles() {
         padding: 0.2rem 0.35rem;
       }
 
+      .mode-switch {
+        background: var(--color-surface);
+        border-radius: 999px;
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+      }
+
+      .mode-option {
+        background: transparent;
+        border-radius: 999px;
+        color: var(--color-hint);
+        flex: 1;
+        font-size: 0.9rem;
+        min-height: 38px;
+        padding: 0.35rem 0.75rem;
+      }
+
+      .mode-option.active {
+        background: var(--color-background);
+        color: var(--color-text);
+      }
+
       .controls {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+      }
+
+      .upload-row {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+      }
+
+      .upload-button {
+        flex: 1;
+        font-size: 0.85rem;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .field-label {
@@ -395,6 +544,7 @@ function Styles() {
         }
 
         .header,
+        .mode-switch,
         .controls,
         .video {
           grid-column: 1;
@@ -402,7 +552,7 @@ function Styles() {
 
         .output {
           grid-column: 2;
-          grid-row: 1 / span 3;
+          grid-row: 1 / span 4;
           min-height: min(80vh, 760px);
         }
       }
