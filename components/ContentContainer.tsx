@@ -53,7 +53,9 @@ export default function ContentContainer({
   const [isEditingSpec, setIsEditingSpec] = useState(false);
   const [editedSpec, setEditedSpec] = useState('');
   const [iframeKey, setIframeKey] = useState(0);
-  const [fullScreen, setFullScreen] = useState(false);
+  // Mounting means Generate was just pressed, so the output takes the screen
+  // immediately -- the wait and the result both deserve the whole viewport.
+  const [fullScreen, setFullScreen] = useState(true);
 
   // Generation is expensive and paid for out of the user's own quota, so it
   // must fire exactly once per mount no matter how often effects re-run.
@@ -190,6 +192,15 @@ export default function ContentContainer({
     void runGeneration();
   }, [runGeneration]);
 
+  useEffect(() => {
+    if (!fullScreen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [fullScreen]);
+
   // Remount the preview whenever the code changes, including manual edits.
   useEffect(() => {
     if (code) setIframeKey((k) => k + 1);
@@ -293,14 +304,6 @@ export default function ContentContainer({
           sandbox="allow-scripts allow-popups"
           className="preview-frame"
         />
-        <button
-          className="button-secondary preview-toggle"
-          onClick={() => {
-            haptic();
-            setFullScreen((v) => !v);
-          }}>
-          {fullScreen ? t.closeFull : t.openFull}
-        </button>
       </div>
     );
   };
@@ -372,6 +375,16 @@ export default function ContentContainer({
             {labels[index]}
           </button>
         ))}
+        <button
+          className="tab-action"
+          aria-label={fullScreen ? t.closeFull : t.openFull}
+          title={fullScreen ? t.closeFull : t.openFull}
+          onClick={() => {
+            haptic();
+            setFullScreen((v) => !v);
+          }}>
+          {fullScreen ? '✕' : '⤡'}
+        </button>
       </div>
 
       <div className="tab-body">
@@ -395,8 +408,11 @@ export default function ContentContainer({
           border: none;
           border-radius: 0;
           bottom: 0;
-          height: 100dvh;
+          /* Telegram's usable height, which is not the same as the viewport
+             once its own header is accounted for. */
+          height: var(--tg-viewport-height, 100dvh);
           left: 0;
+          padding-bottom: env(safe-area-inset-bottom);
           position: fixed;
           right: 0;
           top: 0;
@@ -463,14 +479,19 @@ export default function ContentContainer({
           width: 100%;
         }
 
-        .preview-toggle {
-          bottom: 0.65rem;
-          font-size: 0.8rem;
-          min-height: 36px;
-          opacity: 0.9;
-          padding: 0.35rem 0.7rem;
-          position: absolute;
-          right: 0.65rem;
+        .tab-action {
+          background: transparent;
+          border-radius: 8px;
+          color: var(--color-hint);
+          flex: 0 0 auto;
+          font-size: 1rem;
+          line-height: 1;
+          min-height: 38px;
+          padding: 0.4rem 0.7rem;
+        }
+
+        .tab-action:active {
+          background: var(--color-surface);
         }
 
         .spec-editor {
