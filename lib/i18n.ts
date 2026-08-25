@@ -13,7 +13,9 @@
  */
 
 export const strings = {
-  subtitle: 'Turn any YouTube video into an interactive learning app',
+  appName: 'Enviso',
+  subtitleVideo: 'Turn a YouTube lesson into an interactive learning app',
+  subtitlePaper: 'Turn a research paper into an interactive explainer',
   inputLabel: 'Paste a YouTube link',
   inputPlaceholder: 'https://www.youtube.com/watch?v=...',
   generate: 'Generate app',
@@ -132,6 +134,7 @@ export const strings = {
   keyStep1: 'Open Google AI Studio and create a key',
   keyStep2: 'Paste it below',
   keyGet: 'Get a free key',
+  keyWatch: 'Watch how (2 min)',
   keyPlaceholder: 'AIza...',
   keySave: 'Save key',
   keyChecking: 'Checking key...',

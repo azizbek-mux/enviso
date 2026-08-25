@@ -12,6 +12,9 @@ import {useState} from 'react';
 
 const AI_STUDIO_URL = 'https://aistudio.google.com/apikey';
 
+/** A walkthrough of getting a key, for anyone who has never seen one. */
+const KEY_GUIDE_URL = 'https://youtu.be/yZN5a12CZD8?si=EPbQLdrQY2d2-xQm';
+
 interface KeyGateProps {
   /** Rendered as a dismissable settings screen rather than a first-run gate. */
   onClose?: () => void;
@@ -87,14 +90,24 @@ export default function KeyGate({onClose, onSaved, pending}: KeyGateProps) {
             whether you are in the right place once you get there. */}
         <KeyIllustration className="key-art" />
 
-        <button
-          className="button-secondary key-link"
-          onClick={() => {
-            haptic();
-            openExternal(AI_STUDIO_URL);
-          }}>
-          {t.keyGet}
-        </button>
+        <div className="key-actions">
+          <button
+            className="button-primary key-link"
+            onClick={() => {
+              haptic();
+              openExternal(AI_STUDIO_URL);
+            }}>
+            {t.keyGet}
+          </button>
+          <button
+            className="button-secondary key-link key-watch"
+            onClick={() => {
+              haptic();
+              openExternal(KEY_GUIDE_URL);
+            }}>
+            <span aria-hidden="true">&#9654;</span> {t.keyWatch}
+          </button>
+        </div>
 
         <input
           type="password"
@@ -208,6 +221,23 @@ export default function KeyGate({onClose, onSaved, pending}: KeyGateProps) {
           height: 24px;
           justify-content: center;
           width: 24px;
+        }
+
+        .key-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .key-link {
+          flex: 1 1 45%;
+        }
+
+        .key-watch {
+          align-items: center;
+          display: flex;
+          gap: 0.4rem;
+          justify-content: center;
         }
 
         .key-error {

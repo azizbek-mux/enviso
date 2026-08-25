@@ -271,8 +271,25 @@ export default function App() {
   const header = (
     <header className="header">
       <div className="brand">
-        <h1 className="title display">Video &rarr; Learning App</h1>
-        <p className="hint subtitle">{t.subtitle}</p>
+        <span className="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path
+              d="M4 17.5 9.2 7.2a1.4 1.4 0 0 1 2.5 0l2 4"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <circle cx="16.4" cy="14.6" r="4.1" stroke="currentColor" strokeWidth="2" />
+          </svg>
+        </span>
+        <div className="brand-text">
+          <h1 className="title display">{t.appName}</h1>
+          {/* The subtitle follows the mode: a research explainer is not a
+              YouTube lesson, and saying so on both was simply wrong. */}
+          <p className="hint subtitle">
+            {mode === 'video' ? t.subtitleVideo : t.subtitlePaper}
+          </p>
+        </div>
       </div>
       <div className="header-actions">
         {(apiKey || panelOpen) && (
@@ -472,8 +489,32 @@ function Styles() {
         justify-content: space-between;
       }
 
+      .brand {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+        min-width: 0;
+      }
+
+      .brand-text {
+        min-width: 0;
+      }
+
+      .mark {
+        align-items: center;
+        background: linear-gradient(140deg, var(--color-brand), var(--color-brand-deep));
+        border-radius: 11px;
+        color: #fff;
+        display: flex;
+        flex: 0 0 34px;
+        height: 34px;
+        justify-content: center;
+        width: 34px;
+      }
+
       .title {
-        font-size: 1.4rem;
+        font-size: 1.35rem;
+        letter-spacing: 0.01em;
       }
 
       .placeholder-art {
@@ -503,10 +544,11 @@ function Styles() {
 
       .mode-switch {
         background: var(--color-surface);
+        border: 1px solid var(--color-border);
         border-radius: 999px;
         display: flex;
         gap: 2px;
-        padding: 3px;
+        padding: 4px;
       }
 
       .mode-option {

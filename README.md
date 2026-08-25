@@ -1,4 +1,4 @@
-# Video → Learning App
+# Enviso
 
 A Telegram Mini App that turns source material into an interactive learning
 app. Gemini reads the source, writes a plan, then writes a single-file web app
