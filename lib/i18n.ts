@@ -118,6 +118,8 @@ const en = {
   switchingModel: 'That model is busy. Switching to another one',
   allBusy: 'All models are busy. Trying again in',
   quotaWait: 'Your key hit its per-minute limit. Waiting',
+  quotaDaily:
+    'Your key has used up today’s free quota on the larger models. It resets at midnight US Pacific time. Until then the app falls back to the lighter model, or you can add billing to your key.',
   seconds: 's',
   busyGaveUp:
     'Google is overloaded at the moment. This is temporary - wait a few minutes and press Try again.',
@@ -256,6 +258,8 @@ const uz: typeof en = {
   switchingModel: 'Bu model band. Boshqasiga oʻtilmoqda',
   allBusy: 'Barcha modellar band. Qayta urinish:',
   quotaWait: 'Kalitingiz daqiqalik limitga yetdi. Kutilmoqda:',
+  quotaDaily:
+    'Kalitingiz bugungi bepul limitni katta modellarda tugatdi. Limit AQSh Tinch okeani vaqti bilan yarim tunda yangilanadi. Shu paytgacha ilova yengilroq modeldan foydalanadi yoki kalitingizga toʻlovni ulashingiz mumkin.',
   seconds: 's',
   busyGaveUp:
     'Google serverlari hozir juda band. Bu vaqtinchalik - bir necha daqiqa kutib, "Qayta urinish" tugmasini bosing.',

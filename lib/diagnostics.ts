@@ -173,7 +173,9 @@ export async function runDiagnostics(
   // A 200 that comes back empty or apologetic means the tool ran but fetched
   // nothing -- which looks identical to success unless the text is read.
   const fetched = Boolean(
-    link.text && link.text.length > 8 && !/cannot|unable|sorry/i.test(link.text),
+    link.text &&
+      link.text.trim().length > 2 &&
+      !/cannot|unable|could not|sorry|no access/i.test(link.text),
   );
   push({
     label: `Link fetch: ${videoModel}`,

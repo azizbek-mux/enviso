@@ -39,6 +39,7 @@ import {shareLink} from '@/lib/deeplink';
 import {expandPaperUrl, type Source} from '@/lib/source';
 import {currentPalette, haptic, notify, shareToChat} from '@/lib/telegram';
 import {
+  DailyQuotaError,
   OverloadedError,
   acrossModels,
   filePart,
@@ -421,16 +422,18 @@ export default function ContentContainer({
 
       console.error('Generation failed:', err);
       setError(
-        err instanceof OverloadedError
-          ? t.busyGaveUp
-          : err instanceof Error
-            ? err.message
-            : String(err),
+        err instanceof DailyQuotaError
+          ? t.quotaDaily
+          : err instanceof OverloadedError
+            ? t.busyGaveUp
+            : err instanceof Error
+              ? err.message
+              : String(err),
       );
       setLoadingState('error');
       notify('error');
     }
-  }, [generateSpecFromSource, generateCodeFromSpec, t.busyGaveUp]);
+  }, [generateSpecFromSource, generateCodeFromSpec, t.busyGaveUp, t.quotaDaily]);
 
   useEffect(() => {
     if (startedRef.current) return;

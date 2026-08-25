@@ -43,12 +43,20 @@ const ROUND_DELAYS_MS = [0, 6000];
  * Five rather than four so the demoted newest model still sits at the end of
  * the chain: it is a poor first choice and a perfectly good last one.
  */
-const MAX_CHAIN_LENGTH = 5;
+const MAX_CHAIN_LENGTH = 6;
 
 /** Remembers the model that last worked, so the next run starts there. */
 const PREFERRED_MODEL_KEY = 'preferred_model';
 
 export class QuotaError extends Error {}
+/**
+ * The key's allowance for this model is spent for the day.
+ *
+ * Distinct from a per-minute rate limit, and the cure is the opposite:
+ * waiting does nothing until the quota resets, but another model has its own
+ * separate allowance and may answer immediately.
+ */
+export class DailyQuotaError extends QuotaError {}
 export class AuthError extends Error {}
 export class ModelError extends Error {}
 /** Google's capacity problem, not ours: worth asking a different model. */
@@ -217,11 +225,24 @@ export async function resolveModels(apiKey: string): Promise<ModelChoice> {
     // ordering entirely and appended last, so it can never be crowded past
     // the cap by a preview release.
     const newest = ranked[0]?.id;
+    const lite = models.filter((m) => m.tier === 1).map((m) => m.id);
+
     let chain = [...new Set([...capable, ...models].map((m) => m.id))].filter(
       (id) => id !== newest,
     );
     if (preferredModel) chain = moveToFront(chain, preferredModel);
-    chain = chain.slice(0, MAX_CHAIN_LENGTH - 1);
+    chain = chain.slice(0, MAX_CHAIN_LENGTH - 2);
+
+    /*
+     * Always keep one lite model and the newest at the end.
+     *
+     * Daily allowances are per model, and the lite tier is the least used, so
+     * it is the one still answering once the bigger models are spent for the
+     * day. Ranking it last and then capping the chain dropped the only model
+     * that still worked -- which is exactly how a key with quota left looked
+     * completely dead.
+     */
+    if (lite[0] && !chain.includes(lite[0])) chain.push(lite[0]);
     if (newest && !chain.includes(newest)) chain.push(newest);
 
     if (bestSpec && bestCode && chain.length) {
@@ -312,6 +333,15 @@ export async function acrossModels<T>(
          * chain cannot relieve it -- it only spends the remaining allowance
          * faster. Wait instead, then retry the same model.
          */
+        // A spent daily allowance is per model, so the next model in the
+        // chain has its own and may answer at once. Waiting would only
+        // postpone the same refusal.
+        if (error instanceof DailyQuotaError) {
+          const next = chain[i + 1];
+          if (next) hooks.onSwitch?.(next, lastError);
+          continue;
+        }
+
         if (error instanceof QuotaError) {
           const backoff = QUOTA_BACKOFF_MS[Math.min(quotaHits, QUOTA_BACKOFF_MS.length - 1)];
           quotaHits += 1;
@@ -371,7 +401,12 @@ function classify(error: unknown): Error {
   const status = (error as {status?: number})?.status;
 
   if (status === 429 || /quota|rate limit|RESOURCE_EXHAUSTED/i.test(raw)) {
-    return new QuotaError(message);
+    // "check your plan and billing details" is the daily allowance being
+    // spent; a per-minute limit says so in as many words.
+    const daily =
+      /plan and billing|exceeded your current quota|PerDay|per day/i.test(raw) &&
+      !/per minute|PerMinute|rate limit/i.test(raw);
+    return daily ? new DailyQuotaError(message) : new QuotaError(message);
   }
   if (
     status === 503 ||
