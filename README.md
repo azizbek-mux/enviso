@@ -117,9 +117,20 @@ numbers and full table rows; for a video, the lesson data — concepts, terms,
 worked examples, misconceptions and a bank of twelve to twenty questions
 spanning recall, apply and transfer. Everything later is computed from it.
 
-Both paths run the same machinery. Only the instrument catalogue differs: a
-paper gets Manhattan plots and forest plots, a lesson gets quizzes,
-sequence builders and flashcards.
+Both paths run the same machinery, and nothing else about them is shared.
+
+A paper produces a **document**: Playfair over Inter, cream and gold, a
+title-page hero, eyebrows above headings, a drop cap, a pull quote, author
+cards, a citation footer. It is meant to be read.
+
+A lesson produces an **app**: one sans family, white ground, the identity's
+accent used confidently, a sticky bar with a progress indicator, stacked
+full-width choice buttons, feedback in place under the choice in green or red.
+It is meant to be used. None of the editorial styling is inherited — a serif
+says "read me", which is the wrong instinct for practice.
+
+The instrument catalogues differ too: a paper gets Manhattan plots and forest
+plots, a lesson gets quizzes, sequence builders and flashcards.
 
 **Phase 2, four at once.** The shell and every section go into one pool. The
 shell carries the head, the fixed header, the hero and the language machinery;

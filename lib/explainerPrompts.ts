@@ -188,9 +188,9 @@ export function buildShellPrompt(
 
   return `You are building ${
     lesson
-      ? 'an interactive LEARNING APP from a video lesson'
+      ? 'an interactive LEARNING APP from a video lesson. It is an app the learner uses, not an article about the subject: they work through it, answer things, and see progress'
       : 'a long-form explainer WEBSITE about a research publication'
-  }. This first step produces the SHELL: the complete document every later section is inserted into.
+  }. This first step produces the SHELL: the complete document every later part is inserted into.
 
 THE PLAN FOR THE WHOLE SITE:
 
@@ -213,22 +213,20 @@ PRODUCE a complete, valid HTML document with exactly this skeleton, which is the
   {"imports":{"three":"https://unpkg.com/three@0.181.1/build/three.module.js","three/addons/":"https://unpkg.com/three@0.181.1/examples/jsm/"}}
   </script>
 
-3. A FIXED HEADER, full width, that becomes translucent with a blur and shrinks once the page scrolls past 50px:
-   - Left: a small square accent-filled tile holding a simple inline-SVG mark, then the site's own name from the identity in font-serif font-bold, with the source and study named beneath it in text-xs font-mono text-stone-500.
+3. ${lesson ? 'A SLIM STICKY BAR at the top holding the lesson name on the left, a compact progress indicator on the right, and a PROGRESS BAR across the bottom edge of the bar showing how far through the sections the learner is. No blur, no shrink-on-scroll, no navigation menu -- a learner moves through the sections in order rather than jumping between them.' : 'A FIXED HEADER, full width, that becomes translucent with a blur and shrinks once the page scrolls past 50px:'}
+${lesson ? '' : `   - Left: a small square accent-filled tile holding a simple inline-SVG mark, then the site's own name from the identity in font-serif font-bold, with the source and study named beneath it in text-xs font-mono text-stone-500.`}
    - Centre: a rounded-2xl bg-white border border-stone-200 bar holding the section links, each two lines at most, using exactly these labels and carrying both languages:
 
 ${navPlan}
 
    - Right: a solid accent-filled rounded-full button linking to the publication, labelled from the identity, with a small external-link SVG.
    - Below the bar on mobile, collapse the links behind a menu button.
-4. A HERO, py-20 or taller, containing in order: a small rounded-full outlined pill carrying the identity's tagline in the accent colour; the paper's full title as an h1 in font-serif at text-5xl md:text-7xl lg:text-8xl with leading-[0.95]; a standfirst paragraph of one or two sentences in text-lg text-stone-600 max-w-3xl saying concretely what was done and found; then a grid of three or four METRIC TILES, each a white rounded-2xl bordered card with an uppercase text-[10px] tracking-widest label, the figure large in font-serif, and a one-line caption beneath.
+4. ${lesson ? 'AN OPENING, compact rather than tall -- roughly one phone screen. It holds the lesson title at 1.5rem weight 700, one sentence saying what the learner will be able to do afterwards, a row of three small chips carrying what the app contains (how many concepts, how many questions, how many worked examples), and one large accent-filled button reading "Start" that scrolls to the first section. No oversized display type, no tagline pill, no metric tiles the size of cards.' : 'A HERO, py-20 or taller, containing in order:'} a small rounded-full outlined pill carrying the identity's tagline in the accent colour; the paper's full title as an h1 in font-serif at text-5xl md:text-7xl lg:text-8xl with leading-[0.95]; a standfirst paragraph of one or two sentences in text-lg text-stone-600 max-w-3xl saying concretely what was done and found; then a grid of three or four METRIC TILES, each a white rounded-2xl bordered card with an uppercase text-[10px] tracking-widest label, the figure large in font-serif, and a one-line caption beneath.
 5. A <main> containing these markers, each alone on its own line, in this order and spelled exactly. Put NOTHING between them:
 
 ${markers}
 
-6. A dark bg-nobel-dark footer carrying the name in font-serif${
-    lesson ? ' and a link back to the video' : ', the full citation, the licence, and the DOI link'
-  }.
+6. ${lesson ? 'A closing line with a quiet link back to the video. No dark panel, no citation block.' : 'A dark bg-nobel-dark footer carrying the name in font-serif, the full citation, the licence, and the DOI link.'}
 7. One <script> at the end of the body containing the scroll handler and the header shrink, and nothing else:
 
 ${pageScript}

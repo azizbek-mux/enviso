@@ -225,8 +225,9 @@ export const LEARNING_INSTRUMENTS = `INSTRUMENTS -- build the one named in the b
 - recap-sheet: the compact thing the learner keeps -- the definitions, rules,
   numbers and common mistakes, laid out to be read in a minute.
 
-Every instrument needs: an eyebrow naming it, a serif title, the instrument
-itself, and one line saying what the learner should take from it.
+Every instrument needs a short heading, the instrument itself, and one line
+saying what the learner should take from it. No eyebrow label above it and no
+serif -- those belong to the explainer, not here.
 
 FEEDBACK IS THE PRODUCT. A wrong answer is the most valuable moment in the
 app, so meet it with the reason from the lesson data, never a bare cross.
@@ -245,11 +246,65 @@ export const HOUSE_STYLE = [
 ].join(String.fromCharCode(10, 10));
 
 /** The same system, with learning instruments in place of explainer ones. */
+/**
+ * A lesson is an app, not a document.
+ *
+ * The explainer style above is editorial on purpose -- a serif title page,
+ * gold rules, a drop cap, a pull quote, a citation footer. Applied to a
+ * learning app it produces something that looks like an article about the
+ * subject rather than a thing you use, which is exactly the wrong instinct
+ * for practice. None of it is inherited here.
+ */
+export const LESSON_PALETTE = `PALETTE
+- Page: #ffffff, with #f5f6f8 for panels and inactive states.
+- Text: #16181d primary, #5b6270 secondary.
+- Borders: #e6e8ec hairlines.
+- ACCENT: the hex given in the identity. Use it confidently -- primary
+  buttons, the progress bar, the selected state, the focus ring. This is an
+  app, and an app has a colour.
+- Correct: #16a06a on #e9f7f1. Wrong: #d9463f on #fdecea. Never use red or
+  green for anything that is not feedback, so the meaning is never diluted.
+- No cream, no gold, no dark editorial panels.`;
+
+export const LESSON_TYPE = `TYPOGRAPHY
+- One family throughout: Inter, then -apple-system, "Segoe UI", Roboto,
+  sans-serif. NO serif face anywhere. A serif says "read me"; this is not for
+  reading.
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+- Screen title: 1.5rem, weight 700. Section heading: 1.15rem, weight 600.
+- Body: 1rem, line-height 1.6. Questions and choices: 1.05rem, weight 500 --
+  they are the thing being read most carefully.
+- Numbers and scores: tabular-nums so they do not jitter as they change.
+- Nothing smaller than 0.8rem. Fine print belongs on a page, not in an app.`;
+
+export const LESSON_IDIOMS = `LAYOUT -- an app, on a phone, held in one hand.
+- One centred column, max-width about 34rem, 1rem of padding. Everything
+  reachable with a thumb.
+- A slim sticky bar at the top: the lesson's name, and a PROGRESS BAR showing
+  how far through the sections the learner is. Progress is the spine of the
+  whole thing -- it is what makes an app feel finishable.
+- Sections stack vertically and are separated by space, not by rules. About
+  2.5rem between them. No hairline dividers, no eyebrow labels above headings,
+  no drop caps, no pull quotes, no author cards, no citation footer.
+- CARDS carry the interactive parts: white, 1rem radius, 1px #e6e8ec border,
+  1.25rem padding. A card is a thing you do, not a thing you read.
+- BUTTONS are large and obvious: 48px minimum height, 0.75rem radius, weight
+  600. Choices in a quiz are full-width stacked buttons, not radio inputs.
+- FEEDBACK appears in place, directly under the choice, in the correct or
+  wrong colours -- never a popup, never a toast that vanishes before it has
+  been read.
+- Motion is brief and only where it means something: a choice settling, a
+  progress bar advancing, a card revealing. 150-250ms. Never decorative.
+- End every section with the single obvious next action.`;
+
 export const LESSON_STYLE = [
-  HOUSE_PALETTE,
-  HOUSE_TYPOGRAPHY,
-  HOUSE_IDIOMS,
-  HOUSE_DETAIL,
+  LESSON_PALETTE,
+  LESSON_TYPE,
+  LESSON_IDIOMS,
   HOUSE_DATA_RULE,
   LEARNING_INSTRUMENTS,
 ].join(String.fromCharCode(10, 10));
