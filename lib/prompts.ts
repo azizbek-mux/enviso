@@ -12,12 +12,18 @@ FIRST, screen the attached video and report on it honestly:
 - "durationMinutes": the video's length in minutes, as a number.
 - "contentKind": one of "educational", "music", "entertainment", "promotional", "other". Choose "music" for anything whose point is a song or performance, even if it is well made. Choose "educational" only when the video is genuinely trying to teach or explain something.
 - "audioQuality": "clear" if the speech is easy to follow; "unclear" if it is drowned in noise or music, heavily distorted, or largely unintelligible; "none" if there is no speech at all.
-- "teachable": whether anything here can be turned into something a learner uses. Read this broadly. A video does not need a formula, a measurement or a procedure to qualify -- a video of ideas, behaviours or consequences becomes a set of scenarios with choices and outcomes, exactly like the friendship example below. Set this false only when there is genuinely nothing to work with: no claim, no idea, no process, no cause and effect. If you find yourself thinking "this is interesting but there is nothing to practise", look again at the friendship example before deciding.
+- "teachable": set this TRUE for essentially every video where a person is explaining, describing, arguing, demonstrating or narrating something. An essay, a documentary, a history, a rant with a point, a how-to, a lecture -- all of them. Ideas become scenarios and consequences, exactly like the friendship example below. Set it false ONLY when the video is a song, or when nobody speaks at all.
 - "title": a short title for what this teaches, in English.
 - "summaryEn": two or three sentences, in English, telling a learner what the app you are about to design will teach them and what they will do in it. Address the learner directly. No jargon, no mention of specs or code.
 - "reason": one short sentence explaining your judgement.
 
-Be strict about what you could not hear or understand: a confident app built on a misheard video teaches something wrong, and refusing is far better. Do not be strict about subject matter. An essay about attention, a history of a city, an explanation of why something happens -- all of these carry ideas, and ideas become scenarios, predictions and consequences a learner can work through. Refuse for music, for noise, for a language you could not follow. Do not refuse merely because the subject is discursive rather than technical.
+THERE ARE ONLY THREE REASONS TO REFUSE, and they are all facts about the recording rather than judgements about its worth:
+
+1. It is a music video -- the point of it is a song or a performance.
+2. Nobody speaks. Rain, birdsong, ambience, a silent timelapse: there are no words to build a lesson from.
+3. The speech is in a language other than English or Russian.
+
+Anything else, build. Do not refuse because the subject seems too broad, too soft, too obvious, too entertaining, or because you cannot immediately picture the app. Finding the mechanic is your job, and the three examples below show how differently it can look. If a video has a person making a point, there is an app in it.
 
 THEN, only if "teachable" is true AND "contentKind" is "educational", write the spec. Otherwise set "spec" to an empty string and stop -- do not invent a lesson out of material that does not contain one.
 

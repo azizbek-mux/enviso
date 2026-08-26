@@ -41,11 +41,11 @@ export const strings = {
   rejectLanguage:
     'Only English and Russian videos are supported for now. This one sounds like {lang}.',
   rejectMusic:
-    'This looks like a music video rather than a lesson. Pick something that explains or teaches an idea.',
-  rejectNoisy:
-    'The speech is too unclear to learn from. Pick a video with clean audio.',
+    'This is a music video. Pick one where someone explains or teaches something.',
+  rejectNoSpeech:
+    'Nobody speaks in this video, so there is nothing to build a lesson from. Pick one where someone explains something.',
   rejectNotEducational:
-    'There is no specific idea here to build a lesson around. Pick a video that explains something.',
+    'Nothing usable came back for this one. Try again, or pick another video.',
   rejectUnreadable:
     'Only an abstract or a paywall was reachable, so the full text could not be read. Try the publisher’s own article link instead of a DOI, or upload the PDF.',
   rejectNotResearch:

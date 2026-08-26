@@ -639,7 +639,7 @@ export default function ContentContainer({
       tooLong: t.rejectTooLong,
       language: t.rejectLanguage,
       music: t.rejectMusic,
-      noisy: t.rejectNoisy,
+      noSpeech: t.rejectNoSpeech,
       notEducational: t.rejectNotEducational,
       unreadable: t.rejectUnreadable,
       notResearch: t.rejectNotResearch,

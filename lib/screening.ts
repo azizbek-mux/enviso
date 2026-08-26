@@ -19,7 +19,7 @@ export type RejectionReason =
   | 'tooLong'
   | 'language'
   | 'music'
-  | 'noisy'
+  | 'noSpeech'
   | 'notEducational'
   | 'unreadable'
   | 'notResearch';
@@ -117,34 +117,48 @@ export function assertUsable(
     );
   }
 
-  if (!paper && contentKind === 'music') {
-    throw new VideoRejectedError('music', undefined, said);
-  }
-
-  // For a paper this means the model reached a paywall, a scan it could not
-  // parse, or nothing at all -- so anything it wrote would be invention.
-  if (audioQuality === 'none' || audioQuality === 'unclear') {
-    throw new VideoRejectedError(paper ? 'unreadable' : 'noisy', undefined, said);
-  }
-
   const spoken = normalise(language);
-  if (!ALLOWED_LANGUAGES.some((allowed) => spoken.startsWith(allowed))) {
+  const wrongLanguage = !ALLOWED_LANGUAGES.some((allowed) =>
+    spoken.startsWith(allowed),
+  );
+
+  /*
+   * A video is refused for three things only.
+   *
+   * Whether a subject is teachable is a judgement, and it was being made
+   * badly -- an essay on attention was called unteachable while an essay on
+   * friendship became a good app. So the judgement is gone. What remains are
+   * facts about the recording: it is a song, nobody speaks, or nobody speaks
+   * a language the model can follow. Everything else is built.
+   */
+  if (!paper) {
+    if (contentKind === 'music') {
+      throw new VideoRejectedError('music', undefined, said);
+    }
+    // Rain, birdsong, ambience: there is no lesson in a video with no words.
+    if (audioQuality === 'none') {
+      throw new VideoRejectedError('noSpeech', undefined, said);
+    }
+    if (wrongLanguage) {
+      throw new VideoRejectedError('language', language, said);
+    }
+    if (!screening.spec?.trim()) {
+      throw new VideoRejectedError('notEducational', undefined, said);
+    }
+    return;
+  }
+
+  // A paper is a different matter: it is either readable or it is not, and
+  // an explainer written from a paywall page would be invention.
+  if (audioQuality === 'none' || audioQuality === 'unclear') {
+    throw new VideoRejectedError('unreadable', undefined, said);
+  }
+
+  if (wrongLanguage) {
     throw new VideoRejectedError('language', language, said);
   }
 
-  if (!teachable || contentKind !== 'educational') {
-    throw new VideoRejectedError(
-      paper ? 'notResearch' : 'notEducational',
-      undefined,
-      said,
-    );
-  }
-
-  if (!screening.spec?.trim()) {
-    throw new VideoRejectedError(
-      paper ? 'notResearch' : 'notEducational',
-      undefined,
-      said,
-    );
+  if (!teachable || contentKind !== 'educational' || !screening.spec?.trim()) {
+    throw new VideoRejectedError('notResearch', undefined, said);
   }
 }
