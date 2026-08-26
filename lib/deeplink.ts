@@ -8,11 +8,11 @@ import type {LinkSource, Source} from '@/lib/source';
 /**
  * Where this Mini App lives, e.g. "yourbot/learn".
  *
- * Fill this in after BotFather gives you the link. Until then sharing falls
- * back to passing the bare source URL, which still works -- the recipient just
+ * Set from the link BotFather returned for /newapp. Emptying it makes sharing
+ * fall back to the bare source URL, which still works -- the recipient just
  * does not land inside the app.
  */
-export const MINI_APP_PATH = '';
+export const MINI_APP_PATH = 'enviso_appbot/study';
 
 /**
  * Pack a source into a startapp payload.
