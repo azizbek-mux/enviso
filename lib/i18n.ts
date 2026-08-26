@@ -29,6 +29,7 @@ export const strings = {
   introStep3: 'Practise with the app it builds',
   invalidUrl: 'That does not look like a YouTube link',
   checkingVideo: 'Checking the video...',
+  checkingPaper: 'Finding the full text...',
 
   rejectTitle: 'This video will not work',
   rejectTitlePaper: 'This publication will not work',
@@ -103,7 +104,7 @@ export const strings = {
   loadingSpec: 'Watching the video and writing a plan...',
   loadingPaper: 'Reading the publication and writing a plan...',
   loadingCode: 'Building your app from the plan...',
-  stillWorking: 'Still working - this takes a minute or two',
+  stillWorking: 'Still working - it may take several minutes',
 
   error: 'Something went wrong',
   retry: 'Try again',

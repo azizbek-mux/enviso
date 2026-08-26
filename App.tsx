@@ -49,7 +49,7 @@ export default function App() {
   const [contentLoading, setContentLoading] = useState(false);
   const [reloadCounter, setReloadCounter] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [checkingVideo, setCheckingVideo] = useState(false);
+  const [checkingSource, setCheckingSource] = useState(false);
   // A source that passed its checks but is waiting for the user to add a key.
   const [pendingSource, setPendingSource] = useState<Source | null>(null);
 
@@ -58,7 +58,7 @@ export default function App() {
 
   const videoUrl = source?.kind === 'video' ? source.url : '';
 
-  const busy = contentLoading || checkingVideo;
+  const busy = contentLoading || checkingSource;
 
   const handleSubmit = async () => {
     if (busy) return;
@@ -97,9 +97,9 @@ export default function App() {
     // Length is checked here, before Gemini sees anything: watching an hour of
     // video is the most expensive request the app can make, and refusing it
     // afterwards would already have spent the user's quota.
-    setCheckingVideo(true);
+    setCheckingSource(true);
     const seconds = await getVideoDurationSeconds(value);
-    setCheckingVideo(false);
+    setCheckingSource(false);
 
     if (isTooLong(seconds)) {
       setUrlError(`${t.rejectTooLong} (${Math.round((seconds ?? 0) / 60)} min)`);
@@ -123,9 +123,9 @@ export default function App() {
 
     // A PubMed page is only ever an abstract and a DOI is only a redirect, so
     // look the paper up and hand the model somewhere the full text lives.
-    setCheckingVideo(true);
+    setCheckingSource(true);
     const record = await lookupPaper(value);
-    setCheckingVideo(false);
+    setCheckingSource(false);
 
     if (record?.title) setResolved(record.title);
 
@@ -167,8 +167,10 @@ export default function App() {
     }
   };
 
-  const mainButtonLabel = checkingVideo
-    ? t.checkingVideo
+  const mainButtonLabel = checkingSource
+    ? mode === 'video'
+      ? t.checkingVideo
+      : t.checkingPaper
     : contentLoading
       ? t.generating
       : source
