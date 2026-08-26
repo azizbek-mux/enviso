@@ -19,6 +19,18 @@ Two sections, one API key:
 
 Based on Aaron Wade's Google AI Studio sample, rebuilt for Telegram.
 
+## First run
+
+1. **The key.** Nothing works without one, so it is the first screen and there
+   is no way past it. A link to Google AI Studio and a two-minute walkthrough
+   video sit beside the input, and the key is checked against Google before it
+   is accepted.
+2. **What are you starting from?** Video or paper, asked outright. The two
+   modes used to live behind a small segmented switch, which made the research
+   half easy to miss entirely.
+3. **The app**, in the mode chosen. The switch stays in the header for changing
+   without going back.
+
 ## Running cost: $0
 
 | Piece | How | Cost |

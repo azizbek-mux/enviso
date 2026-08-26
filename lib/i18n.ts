@@ -49,6 +49,15 @@ export const strings = {
   rejectNotResearch:
     'This does not look like a research publication. Try a paper, preprint, or thesis.',
 
+  chooseTitle: 'What are you starting from?',
+  chooseSubtitle: 'Pick one. You can switch at any time.',
+  chooseVideoTitle: 'A video lesson',
+  chooseVideoBody:
+    'A YouTube lesson becomes an app you practise with: a model to manipulate, a worked example, questions with reasons, and a recap to keep.',
+  choosePaperTitle: 'A research paper',
+  choosePaperBody:
+    'A paper becomes an explainer site: the problem, the mechanism made visible, its real numbers as figures you can explore, and the citation.',
+
   modeVideo: 'Video',
   modePaper: 'Research',
   paperLabel: 'Link to the publication',

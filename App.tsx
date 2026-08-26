@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import Chooser from '@/components/Chooser';
 import ContentContainer from '@/components/ContentContainer';
 import HistoryList from '@/components/HistoryList';
 import {EmptyIllustration, PaperIllustration} from '@/components/Illustrations';
@@ -38,7 +39,7 @@ import {useEffect, useRef, useState} from 'react';
 export default function App() {
   const {t, apiKey, keyLoading} = useSettings();
 
-  const [mode, setMode] = useState<SourceKind>('video');
+  const [mode, setMode] = useState<SourceKind | null>(null);
   const [source, setSource] = useState<Source | null>(null);
   const [pdf, setPdf] = useState<{name: string; mimeType: string; base64: string} | null>(null);
   const [linkHint, setLinkHint] = useState<LinkHint | null>(null);
@@ -50,8 +51,6 @@ export default function App() {
   const [reloadCounter, setReloadCounter] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [checkingSource, setCheckingSource] = useState(false);
-  // A source that passed its checks but is waiting for the user to add a key.
-  const [pendingSource, setPendingSource] = useState<Source | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -68,14 +67,6 @@ export default function App() {
     const next =
       mode === 'video' ? await prepareVideo() : await preparePaper();
     if (!next) return;
-
-    // The key is asked for here rather than on the first screen: by now the
-    // user has chosen something and wants a result, so the detour to AI Studio
-    // buys them one instead of blocking a result they have not imagined yet.
-    if (!apiKey) {
-      setPendingSource(next);
-      return;
-    }
 
     start(next);
   };
@@ -250,19 +241,15 @@ export default function App() {
   };
 
   const start = (next: Source) => {
-    setPendingSource(null);
     setRestored(null);
     setSource(next);
     // Bumping the key remounts ContentContainer, which restarts generation.
     setReloadCounter((c) => c + 1);
   };
 
-  const panelOpen = showSettings || pendingSource !== null;
+  const panelOpen = showSettings;
 
-  const closePanel = () => {
-    setShowSettings(false);
-    setPendingSource(null);
-  };
+  const closePanel = () => setShowSettings(false);
 
   // Telegram's own back button is where a Mini App user looks first.
   useEffect(() => {
@@ -289,7 +276,7 @@ export default function App() {
           {/* The subtitle follows the mode: a research explainer is not a
               YouTube lesson, and saying so on both was simply wrong. */}
           <p className="hint subtitle">
-            {mode === 'video' ? t.subtitleVideo : t.subtitlePaper}
+            {mode === 'paper' ? t.subtitlePaper : t.subtitleVideo}
           </p>
         </div>
       </div>
@@ -311,15 +298,33 @@ export default function App() {
     </header>
   );
 
-  if (!keyLoading && panelOpen) {
+  if (keyLoading) return null;
+
+  // The key comes first: nothing here works without one, and asking later
+  // meant a new user met a demand instead of the app.
+  if (!apiKey || panelOpen) {
     return (
       <div className="app">
         {header}
         <KeyGate
-          key={pendingSource ? 'gate' : 'settings'}
-          pending={pendingSource !== null}
-          onClose={closePanel}
-          onSaved={pendingSource ? () => start(pendingSource) : undefined}
+          key={apiKey ? 'settings' : 'onboarding'}
+          onClose={apiKey ? closePanel : undefined}
+          onSaved={apiKey ? closePanel : undefined}
+        />
+        <Styles />
+      </div>
+    );
+  }
+
+  if (!mode) {
+    return (
+      <div className="app">
+        {header}
+        <Chooser onChoose={setMode} />
+        <HistoryList
+          items={history}
+          onOpen={openFromHistory}
+          onChanged={refreshHistory}
         />
         <Styles />
       </div>
