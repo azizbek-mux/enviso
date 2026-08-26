@@ -16,6 +16,7 @@ import {
 } from '@/lib/explainerPrompts';
 import {
   FACTS_FROM_PAPER_PROMPT,
+  LESSON_FROM_VIDEO_PROMPT,
   JSON_ONLY_INSTRUCTION,
   PAPER_RESPONSE_SCHEMA,
   SPEC_FROM_PAPER_PROMPT,
@@ -23,7 +24,6 @@ import {
   SPEC_RESPONSE_SCHEMA,
   VARIATIONS,
   type VariationKind,
-  buildSpecAddendum,
   paperUrlInstruction,
 } from '@/lib/prompts';
 import {
@@ -37,7 +37,7 @@ import {saveHistory} from '@/lib/history';
 import {withWorkingNav} from '@/lib/injectNav';
 import {shareLink} from '@/lib/deeplink';
 import {expandPaperUrl, type Source} from '@/lib/source';
-import {currentPalette, haptic, notify, shareToChat} from '@/lib/telegram';
+import {haptic, notify, shareToChat} from '@/lib/telegram';
 import {
   DailyQuotaError,
   OverloadedError,
@@ -205,22 +205,22 @@ export default function ContentContainer({
       );
     };
 
-    const wantsFacts = source.kind === 'paper';
+    const video = source.kind === 'video';
 
     const [planText, factsText] = await Promise.all([
       ask(
-        source.kind === 'video' ? SPEC_FROM_VIDEO_PROMPT : SPEC_FROM_PAPER_PROMPT,
-        source.kind === 'video' ? SPEC_RESPONSE_SCHEMA : PAPER_RESPONSE_SCHEMA,
+        video ? SPEC_FROM_VIDEO_PROMPT : SPEC_FROM_PAPER_PROMPT,
+        video ? SPEC_RESPONSE_SCHEMA : PAPER_RESPONSE_SCHEMA,
       ),
-      wantsFacts
-        ? ask(FACTS_FROM_PAPER_PROMPT, null, {
-            thinkingConfig: {thinkingLevel: 'LOW' as never},
-          }).catch((err) => {
-            // A site without its data layer is thin, not broken.
-            console.warn('Facts extraction failed:', err);
-            return '';
-          })
-        : Promise.resolve(''),
+      // A lesson needs its substance extracted just as a paper does: an app
+      // built from prose is a summary with buttons, where one built from real
+      // definitions, examples and a question bank can actually test someone.
+      ask(video ? LESSON_FROM_VIDEO_PROMPT : FACTS_FROM_PAPER_PROMPT, null, {
+        thinkingConfig: {thinkingLevel: 'LOW' as never},
+      }).catch((err) => {
+        console.warn('Data extraction failed:', err);
+        return '';
+      }),
     ]);
 
     const screening = parseJSON(planText) as Screening;
@@ -231,7 +231,7 @@ export default function ContentContainer({
 
     factsRef.current = factsText || screening.facts || '';
     identityRef.current = screening.identity ?? '';
-    planRef.current = planSections(screening.sections);
+    planRef.current = planSections(screening.sections, source.kind);
 
     setSummary({text: screening.summaryEn, title: screening.title});
 
@@ -288,13 +288,14 @@ export default function ContentContainer({
    * the brief rather than from the shell, and nothing has to wait for anything
    * else. The shell is simply one more job in the same pool.
    */
-  const generateExplainer = useCallback(
+  const generateSite = useCallback(
     async (baseSpec: string) => {
+      const kind = source.kind;
       const facts = factsRef.current;
       const identity = identityRef.current;
       const sections = planRef.current.length
         ? planRef.current
-        : planSections(null);
+        : planSections(null, kind);
 
       type Job = {kind: 'shell'} | {kind: 'section'; index: number};
       const jobs: Job[] = [
@@ -329,7 +330,7 @@ export default function ContentContainer({
           if (job.kind === 'shell') {
             shell =
               (await attempt(
-                buildShellPrompt(baseSpec, facts, sections, identity),
+                buildShellPrompt(baseSpec, facts, sections, identity, kind),
                 true,
               )) ?? '';
           } else {
@@ -339,6 +340,7 @@ export default function ContentContainer({
                 baseSpec,
                 facts,
                 identity,
+                kind,
               ),
               false,
             );
@@ -372,18 +374,10 @@ export default function ContentContainer({
 
       return clearMarkers(assembled);
     },
-    [runOnBestModel, t.buildingPart],
+    [runOnBestModel, source.kind, t.buildingPart],
   );
 
-  const generateCodeFromSpec = useCallback(
-    async (baseSpec: string) => {
-      if (source.kind === 'paper') return generateExplainer(baseSpec);
-
-      const prompt = baseSpec + buildSpecAddendum(currentPalette(), 'video');
-      return parseHTML(await runOnBestModel(prompt));
-    },
-    [source.kind, runOnBestModel, generateExplainer],
-  );
+  const generateCodeFromSpec = generateSite;
 
   const runGeneration = useCallback(async () => {
     try {

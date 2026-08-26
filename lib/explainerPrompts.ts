@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {HOUSE_STYLE} from '@/lib/houseStyle';
+import {HOUSE_STYLE, LESSON_STYLE} from '@/lib/houseStyle';
 import {REFERENCE_SECTION} from '@/lib/referenceExample';
 import {CODE_REGION_CLOSER, CODE_REGION_OPENER} from '@/lib/prompts';
 
@@ -49,6 +49,45 @@ export const EXPLAINER_SECTIONS = [
   },
 ] as const;
 
+/** Fallback arc for a lesson, when the model proposes nothing usable. */
+export const LESSON_SECTIONS = [
+  {
+    key: 'idea',
+    instrument: 'concept-model',
+    titleEn: 'The Core Idea',
+    brief:
+      'The single idea this lesson turns on, stated plainly and shown as a model the learner changes -- one control, one visible consequence, the rule beneath it.',
+  },
+  {
+    key: 'walkthrough',
+    instrument: 'worked-example',
+    titleEn: 'Worked Example',
+    brief:
+      'An example from the lesson data, revealed one reasoning step at a time, with the learner predicting the next step before it opens.',
+  },
+  {
+    key: 'practice',
+    instrument: 'practice-quiz',
+    titleEn: 'Practice',
+    brief:
+      'Questions from the bank, one at a time, spanning recall then apply then transfer. Immediate feedback giving the reason, a visible score, and a retry of whatever was missed.',
+  },
+  {
+    key: 'traps',
+    instrument: 'sorting-exercise',
+    titleEn: 'Common Traps',
+    brief:
+      'The misconceptions from the lesson data, presented as claims the learner sorts into true and false, each corrected with why.',
+  },
+  {
+    key: 'recap',
+    instrument: 'recap-sheet',
+    titleEn: 'Keep This',
+    brief:
+      'The compact thing the learner takes away: definitions, rules, numbers and traps, laid out to be read in a minute.',
+  },
+] as const;
+
 export interface PlannedSection {
   key: string;
   titleEn?: string;
@@ -67,16 +106,24 @@ export interface PlannedSection {
  */
 export function planSections(
   proposed?: PlannedSection[] | null,
+  kind: 'video' | 'paper' = 'paper',
 ): PlannedSection[] {
+  const fallback: PlannedSection[] =
+    kind === 'video' ? [...LESSON_SECTIONS] : [...EXPLAINER_SECTIONS];
+
   const usable = (proposed ?? []).filter(
     (section) => section?.key && section?.brief,
   );
-  if (usable.length < 3) return [...EXPLAINER_SECTIONS];
+  if (usable.length < 3) return fallback;
 
   const sections = usable.slice(0, 6);
-  return sections.some((section) => section.key === 'credits')
+
+  // A paper always ends in attribution; a lesson always ends in something the
+  // learner keeps. Neither is the model's to leave out.
+  const closer = fallback[fallback.length - 1];
+  return sections.some((section) => section.key === closer.key)
     ? sections
-    : [...sections, EXPLAINER_SECTIONS[EXPLAINER_SECTIONS.length - 1]];
+    : [...sections, closer];
 }
 
 /** Placeholder the shell leaves behind for each section to be stitched into. */
@@ -103,7 +150,9 @@ export function buildShellPrompt(
   facts: string,
   sections: PlannedSection[],
   identity: string,
+  kind: 'video' | 'paper' = 'paper',
 ): string {
+  const lesson = kind === 'video';
   const markers = sections
     .map((section) => `    ${sectionMarker(section.key)}`)
     .join(NEWLINE);
@@ -137,13 +186,17 @@ export function buildShellPrompt(
     '  </script>',
   ].join(NEWLINE);
 
-  return `You are building a long-form explainer WEBSITE about a research publication. This first step produces the SHELL: the complete document every later section is inserted into.
+  return `You are building ${
+    lesson
+      ? 'an interactive LEARNING APP from a video lesson'
+      : 'a long-form explainer WEBSITE about a research publication'
+  }. This first step produces the SHELL: the complete document every later section is inserted into.
 
 THE PLAN FOR THE WHOLE SITE:
 
 ${spec}
 
-THE PAPER'S FACTS, as extracted data. Use these exact values and never invent one:
+${lesson ? "THE LESSON DATA, extracted from the video. Everything the app teaches and tests comes from here, and nothing may be invented:" : "THE PAPER'S FACTS, as extracted data. Use these exact values and never invent one:"}
 
 ${facts}
 
@@ -173,12 +226,14 @@ ${navPlan}
 
 ${markers}
 
-6. A dark bg-nobel-dark footer carrying the site name in font-serif, the full citation, the licence, and the DOI link.
+6. A dark bg-nobel-dark footer carrying the name in font-serif${
+    lesson ? ' and a link back to the video' : ', the full citation, the licence, and the DOI link'
+  }.
 7. One <script> at the end of the body containing the scroll handler and the header shrink, and nothing else:
 
 ${pageScript}
 
-${HOUSE_STYLE}
+${lesson ? LESSON_STYLE : HOUSE_STYLE}
 
 Return ONLY the HTML document, between ${CODE_REGION_OPENER} and ${CODE_REGION_CLOSER}.`;
 }
@@ -194,8 +249,15 @@ export function buildSectionPrompt(
   spec: string,
   facts: string,
   identity: string,
+  kind: 'video' | 'paper' = 'paper',
 ): string {
-  return `You are writing ONE section of a long-form explainer website about a research publication. The rest of the site already exists.
+  const lesson = kind === 'video';
+
+  return `You are writing ONE section of ${
+    lesson
+      ? 'an interactive learning app built from a video lesson'
+      : 'a long-form explainer website about a research publication'
+  }. The rest of it already exists.
 
 THE SECTION TO WRITE -- "${section.titleEn ?? section.key}" (id="${section.key}"):
 ${section.brief}
@@ -206,7 +268,7 @@ THE PLAN FOR THE WHOLE SITE, for context. Write only your own part of it:
 
 ${spec}
 
-THE PAPER'S FACTS, as extracted data. Build every figure, table and chart from these exact values. If a number is not here, do not state it:
+${lesson ? 'THE LESSON DATA. Every question, definition, example and number the learner sees comes from here. If it is not here, do not state it:' : "THE PAPER'S FACTS, as extracted data. Build every figure, table and chart from these exact values. If a number is not here, do not state it:"}
 
 ${facts}
 

@@ -4,7 +4,7 @@
  */
 
 
-export const SPEC_FROM_VIDEO_PROMPT = `You are a pedagogist and product designer with deep expertise in crafting engaging learning experiences via interactive web apps.
+export const SPEC_FROM_VIDEO_PROMPT = `You are a learning designer who turns a lesson into something a student practises with, not something they read.
 
 FIRST, screen the attached video and report on it honestly:
 
@@ -12,31 +12,54 @@ FIRST, screen the attached video and report on it honestly:
 - "durationMinutes": the video's length in minutes, as a number.
 - "contentKind": one of "educational", "music", "entertainment", "promotional", "other". Choose "music" for anything whose point is a song or performance, even if it is well made. Choose "educational" only when the video is genuinely trying to teach or explain something.
 - "audioQuality": "clear" if the speech is easy to follow; "unclear" if it is drowned in noise or music, heavily distorted, or largely unintelligible; "none" if there is no speech at all.
-- "teachable": true only if this video contains a specific idea a learner could practise with an interactive app.
+- "teachable": true only if this video contains a specific idea a learner could practise.
 - "title": a short title for what this teaches, in English.
-- "summaryEn": two or three sentences, in English, telling a learner what the app you are about to design will teach them and what they will do in it. Address the learner directly. No jargon, no mention of specs or code.
+- "summaryEn": two or three sentences telling a learner what they will be able to do after using the app. Address them directly. No jargon, no mention of specs or code.
+- "identity": a JSON object, as a STRING, giving the app its own identity: "name" (a short product-like name for this lesson, e.g. "Chord Function Lab" or "Krebs Cycle Trainer"), "tagline" (six to ten words saying what the learner practises), "accent" (a hex colour drawn from the subject that works as a strong accent on a light page), and "ctaLabel" (what the button linking back to the video should say, e.g. "Watch the lesson").
+- "sections": an array of FOUR to SIX section objects, named after THIS lesson's own subject rather than a template. Each has "key" (a short lowercase slug), "titleEn", "instrument" (one of: concept-model, interactive-simulation, labelled-diagram, worked-example, practice-quiz, flashcards, sorting-exercise, sequence-builder, comparison-table, recap-sheet), and "brief" (two or three sentences saying exactly what the section shows and what the learner does in it).
+
+  The order must be a learning arc, not a summary: meet the idea, manipulate it, practise it, check it, keep it. AT LEAST ONE section must be "practice-quiz" and AT LEAST ONE must be a manipulable model. End with "recap-sheet". Good names look like "How Chords Pull", "Build the Progression", "Name That Cadence". Bad ones look like "Introduction", "Content", "Summary".
 - "reason": one short sentence explaining your judgement.
 
 Be strict. Saying no to an unsuitable video is far more useful than producing a confident learning app built on something you could not properly hear or understand.
 
 THEN, only if "teachable" is true AND "contentKind" is "educational", write the spec. Otherwise set "spec" to an empty string and stop -- do not invent a lesson out of material that does not contain one.
 
-When you do write it: write a detailed and carefully considered spec for an interactive web app designed to complement the video and reinforce its key idea or ideas. The recipient of the spec does not have access to the video, so the spec must be thorough and self-contained (the spec must not mention that it is based on a video). Here is an example of a spec written in response to a video about functional harmony:
+When you do write it: produce a detailed, self-contained spec for an interactive learning app that teaches this video's central idea. The recipient of the spec has not seen the video, so the spec must carry every fact, definition, number and example it needs.
 
-"In music, chords create expectations of movement toward certain other chords and resolution towards a tonal center. This is called functional harmony.
+What separates a good one from a bad one:
 
-Build me an interactive web app to help a learner understand the concept of functional harmony.
-
-SPECIFICATIONS:
-1. The app must feature an interactive keyboard.
-2. The app must showcase all 7 diatonic triads that can be created in a major key (i.e., tonic, supertonic, mediant, subdominant, dominant, submediant, leading chord).
-3. The app must somehow describe the function of each of the diatonic triads, and state which other chords each triad tends to lead to.
-4. The app must provide a way for users to play different chords in sequence and see the results.
-[etc.]"
-
-The goal of the app that is to be built based on the spec is to enhance understanding through simple and playful design. The provided spec should not be overly complex, i.e., a junior web developer should be able to implement it in a single html file (with all styles and scripts inline). Most importantly, the spec must clearly outline the core mechanics of the app, and those mechanics must be highly effective in reinforcing the given video's key idea(s).
+1. It teaches ONE idea properly rather than surveying everything the video mentioned. Name that idea in the first line.
+2. The learner DOES something. Reading is not practice. Every section must have an action: manipulate, choose, order, label, predict, answer.
+3. Feedback is immediate and explains WHY, not just right or wrong. A wrong answer is the most valuable moment in the app and must be met with the reason, not a red cross.
+4. It builds: recognise, then apply, then transfer. Do not ask the hardest question first.
+5. It ends with something the learner keeps -- a compact recap of the facts, rules or steps worth remembering.
 
 Write the spec in English regardless of the language spoken in the video. The spec is a build brief for a developer, not user-facing text.`;
+
+/**
+ * The lesson's substance, extracted on its own.
+ *
+ * The mirror of the paper's data layer. A learning app built from prose is a
+ * summary with buttons; one built from real definitions, worked examples and
+ * a question bank has something to actually test the learner against.
+ */
+export const LESSON_FROM_VIDEO_PROMPT = `Watch the attached video and extract everything a learning app would need to teach and test its content. Return ONLY a JSON object, with no prose, no markdown fence and no commentary.
+
+Include:
+
+- "topic": what the video teaches, in one sentence.
+- "concepts": each key idea, with "name", "definition" in plain language, and "why" it matters.
+- "terms": vocabulary the learner must know, each with the term and a short definition.
+- "facts": every concrete number, rule, formula, date or threshold stated, with what it applies to. Use the video's exact values.
+- "steps": if a process or method is demonstrated, its ordered stages with names and what happens at each.
+- "examples": every worked example given, with the problem, the reasoning and the answer.
+- "misconceptions": the mistakes a learner is likely to make here, each with the wrong belief and the correction. If the video calls one out, use it.
+- "questions": a bank of TWELVE to TWENTY practice questions covering the material. Each has "q", "type" (one of "multiple-choice", "true-false", "order", "match", "short-answer"), "options" where the type needs them, "answer", "why" explaining the reasoning, and "level" (one of "recall", "apply", "transfer"). Spread them across all three levels; do not make them all recall.
+
+Base everything on what the video actually says. Never invent a fact, a number or an example it did not give. If the video does not cover something, leave it out rather than filling the gap.
+
+COMPLETE, BUT COMPACT: short keys, no indentation, no repeated prose. Keep the whole object under roughly 700 lines of dense JSON.`;
 
 /**
  * JSON shape the screening call must return, enforced by the API itself.
@@ -60,6 +83,20 @@ export const SPEC_RESPONSE_SCHEMA = {
     teachable: {type: 'boolean'},
     title: {type: 'string'},
     summaryEn: {type: 'string'},
+    identity: {type: 'string'},
+    sections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          key: {type: 'string'},
+          titleEn: {type: 'string'},
+          instrument: {type: 'string'},
+          brief: {type: 'string'},
+        },
+        required: ['key', 'titleEn', 'instrument', 'brief'],
+      },
+    },
     reason: {type: 'string'},
     spec: {
       type: 'string',
@@ -79,94 +116,6 @@ export const SPEC_RESPONSE_SCHEMA = {
 export const CODE_REGION_OPENER = '```';
 export const CODE_REGION_CLOSER = '```';
 
-export interface Palette {
-  scheme: string;
-  background: string;
-  text: string;
-  hint: string;
-  accent: string;
-  accentText: string;
-}
-
-/**
- * Requirements appended to every spec before it is handed to the code model.
- *
- * Three things make this different from the stock single-language prompt:
- *
- *  1. Telegram Mini App constraints. The result renders inside a sandboxed
- *     iframe on a phone: no web storage, no network, touch-sized controls.
- *  2. Theme matching. The live Telegram palette is injected so the generated
- *     app does not flash white inside a dark Telegram.
- */
-export function buildSpecAddendum(
-  palette: Palette,
-  kind: 'video' | 'paper' = 'video',
-): string {
-  const paper = kind === 'paper';
-
-  /*
-   * Learning apps stay strictly offline: they are small, and a CDN is a
-   * failure point they do not need. An explainer website may need real 3D,
-   * which is not worth hand-rolling in WebGL, so that path -- and only that
-   * path -- may reach for three.js.
-   */
-  const networkRule = paper
-    ? THREE_JS_RULE
-    : `- Do NOT load anything over the network: no CDN scripts, no external stylesheets, no web fonts, no remote images, no fetch or XMLHttpRequest calls. Everything must be inline. Use CSS, inline SVG, emoji, or the Canvas API for visuals.`;
-
-  const closing = paper ? PAPER_CRAFT_RULE : APP_CRAFT_RULE;
-
-  return `
-
-
----
-
-IMPLEMENTATION REQUIREMENTS
-
-LANGUAGE: write every user-facing string in English.
-
-Provide the code as a single, self-contained HTML document. All styles and scripts must be inline. In the result, encase the code between "${CODE_REGION_OPENER}" and "${CODE_REGION_CLOSER}" for easy parsing.
-
-RUNTIME ENVIRONMENT (a sandboxed iframe inside a Telegram Mini App on a phone)
-- Mobile-first. Assume a viewport about 360px wide with a touch screen. It must also scale up gracefully on desktop.
-- Interactive targets must be at least 44x44px. Never rely on :hover, right-click, or keyboard-only interactions to convey information or drive core mechanics; support tap and drag.
-- Do NOT use localStorage, sessionStorage, cookies, or IndexedDB. The sandbox blocks them and any access throws an exception that will break the page. Keep all state in JavaScript variables.
-${networkRule}
-- If you need audio, synthesize it with the Web Audio API and only start the AudioContext inside a user gesture handler, since mobile browsers block autoplay.
-- The document must never scroll horizontally. Long content scrolls vertically inside its own container.
-
-VISUAL THEME (match the surrounding Telegram client)
-- Colour scheme: ${palette.scheme}
-- Page background: ${palette.background}
-- Primary text: ${palette.text}
-- Secondary / hint text: ${palette.hint}
-- Accent and primary buttons: ${palette.accent}
-- Text on accent: ${palette.accentText}
-Use these exact values as the base palette. Derived shades are fine, but the app must feel like it belongs inside this theme, and text must stay readable against its background.
-
-${closing}`;
-}
-
-const THREE_JS_RULE = `- Load nothing over the network EXCEPT three.js, and only if the spec calls for a 3D scene. When you need it, import it exactly like this and add no other remote resource of any kind:
-
-  <script type="importmap">
-  {"imports":{"three":"https://unpkg.com/three@0.181.1/build/three.module.js","three/addons/":"https://unpkg.com/three@0.181.1/examples/jsm/"}}
-  </script>
-  <script type="module">
-  import * as THREE from 'three';
-  import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-  </script>
-
-  Keep any scene light enough for a phone: cap the pixel ratio at 2, keep geometry simple, pause the render loop when the canvas scrolls out of view, and if WebGL is unavailable show a diagram in its place rather than an empty box. Still no web fonts, no remote images, and no fetch or XMLHttpRequest.`;
-
-const APP_CRAFT_RULE = `Keep the design simple, playful, and focused on the core mechanic. Working interactivity matters more than decoration.`;
-
-const PAPER_CRAFT_RULE = `TYPOGRAPHY AND PACING
-- This is a long-form site, so it must be a pleasure to read: a serif face for headings against a clean sans for body text, generous line height, a measure of roughly 65-75 characters, and real space between sections.
-- Let it breathe. A confident explainer is unhurried; do not compress it into a stack of cards.
-- The reader must always know where they are, so give it a slim sticky header or section markers rather than letting a long scroll run unmarked.
-
-Working interactivity and clear explanation matter more than decoration, but this should look like something made with care.`;
 
 /* -------------------------------------------------------------------------- */
 /* Research papers                                                            */

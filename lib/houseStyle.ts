@@ -193,6 +193,46 @@ export const HOUSE_DETAIL = `DETAIL THAT SEPARATES A PRODUCT FROM A DOCUMENT
 - A dark panel for funding, approvals and identifiers near the end, and a dark
   footer carrying the full citation and licence.`;
 
+/**
+ * The learning instrument catalogue.
+ *
+ * The research path names what each section builds, and that is what turned
+ * "a section about the results" into something a reader operates. A lesson
+ * needs the same, with pedagogy in place of exposition: the point is not to
+ * show the idea but to make the learner use it.
+ */
+export const LEARNING_INSTRUMENTS = `INSTRUMENTS -- build the one named in the brief, from the lesson data.
+- concept-model: the idea shown as a diagram the learner changes -- a control
+  that alters one variable while the consequence updates in front of them,
+  with the rule stated beneath.
+- interactive-simulation: the process running, steppable and resettable, with
+  the state visible at each moment rather than only the outcome.
+- labelled-diagram: parts the learner must name or drag into place, checked
+  with an explanation for each miss.
+- worked-example: the example from the video revealed one reasoning step at a
+  time, the learner predicting the next step before it opens.
+- practice-quiz: questions from the bank, one at a time, immediate feedback
+  that gives the REASON rather than a mark, a visible score, and a retry of
+  the ones missed. Never a wall of questions with a score at the end.
+- flashcards: term on one side, definition on the other, flipped and shuffled,
+  with the learner marking what they knew.
+- sorting-exercise: items dragged or tapped into the right category, wrong
+  placements explained.
+- sequence-builder: steps put into the right order, checked with why the order
+  matters.
+- comparison-table: two or more things against several measures, with the
+  distinguishing row highlighted on selection.
+- recap-sheet: the compact thing the learner keeps -- the definitions, rules,
+  numbers and common mistakes, laid out to be read in a minute.
+
+Every instrument needs: an eyebrow naming it, a serif title, the instrument
+itself, and one line saying what the learner should take from it.
+
+FEEDBACK IS THE PRODUCT. A wrong answer is the most valuable moment in the
+app, so meet it with the reason from the lesson data, never a bare cross.
+Track what the learner got right and show it, so they can see themselves
+improving rather than guessing.`;
+
 /** Everything above, in the order a builder needs it. */
 export const HOUSE_STYLE = [
   HOUSE_PALETTE,
@@ -202,4 +242,14 @@ export const HOUSE_STYLE = [
   HOUSE_DATA_RULE,
   HOUSE_INTERACTION_RULE,
   INSTRUMENT_CATALOGUE,
+].join(String.fromCharCode(10, 10));
+
+/** The same system, with learning instruments in place of explainer ones. */
+export const LESSON_STYLE = [
+  HOUSE_PALETTE,
+  HOUSE_TYPOGRAPHY,
+  HOUSE_IDIOMS,
+  HOUSE_DETAIL,
+  HOUSE_DATA_RULE,
+  LEARNING_INSTRUMENTS,
 ].join(String.fromCharCode(10, 10));

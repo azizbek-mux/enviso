@@ -6,7 +6,10 @@ from that plan.
 
 Two sections, one API key:
 
-- **Video** — a YouTube lesson becomes an app that drills its key idea.
+- **Video** — a YouTube lesson becomes an app the learner practises with:
+  a model they manipulate, a worked example revealed a step at a time, a
+  question bank with reasons rather than marks, the misconceptions sorted, and
+  a recap sheet to keep.
 - **Research** — a paper becomes a long-form explainer *website*: hero, the
   problem, the mechanism, an interactive visual, the numbers, the limitations,
   the citation. From an uploaded PDF or a link the model retrieves itself.
@@ -74,12 +77,16 @@ the hero, the 3D scene, every chart and all the prose end up competing for the
 same ceiling. So the research path is written in parts — and the parts are
 written at the same time.
 
-**Phase 1, two calls at once.** One reads the paper and returns the verdict,
-the plan, the summaries, the site identity and the section list. The other
-reads it again and returns `facts` — the metadata, authors, real numbers and
-full table rows every later visual is computed from. Together in one response
-they were the slowest thing in the pipeline; apart they cost a second read and
-halve the wait.
+**Phase 1, two calls at once.** One reads the source and returns the verdict,
+the plan, the summary, the identity and the section list. The other reads it
+again and returns the substance: for a paper, `facts` — metadata, authors,
+numbers and full table rows; for a video, the lesson data — concepts, terms,
+worked examples, misconceptions and a bank of twelve to twenty questions
+spanning recall, apply and transfer. Everything later is computed from it.
+
+Both paths run the same machinery. Only the instrument catalogue differs: a
+paper gets Manhattan plots and forest plots, a lesson gets quizzes,
+sequence builders and flashcards.
 
 **Phase 2, four at once.** The shell and every section go into one pool. The
 shell carries the head, the fixed header, the hero and the language machinery;
