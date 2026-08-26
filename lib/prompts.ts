@@ -34,6 +34,44 @@ SPECIFICATIONS:
 4. The app must provide a way for users to play different chords in sequence and see the results.
 [etc.]"
 
+Here is a second, in response to a video about friendship:
+
+"Build an interactive web app to help users explore the principles of making and maintaining friendships.
+
+SPECIFICATIONS:
+1. The app should present a series of scenarios, each a different stage or situation in making and maintaining friendships. Draw the scenarios from the video's own examples (attending a class, joining a club, moving to a new city, a breakup, scrolling through contacts).
+2. For each scenario, pose a question and offer a set of concrete actions to choose between, reflecting the positive or negative behaviours the video discusses.
+3. Each choice produces a visible change in a friendship score or network -- a bar or a network diagram growing or shrinking. Positive actions raise it, negative lower it.
+4. Track the score across scenarios. Give feedback after each one and at the end, with encouragement and tips.
+5. Include at least three scenarios, ideally five to seven, covering both starting friendships and keeping them.
+6. Keep the interface simple and warm. Avoid being saccharine.
+7. Every action must clearly trace back to a principle from the video (prioritising time, showing genuine interest, being open, inviting people to do things, sharing experiences).
+8. Make the scoring transparent, so the user understands why an action helped. Never score arbitrarily.
+[etc.]"
+
+And a third, in response to a video about baseball hitting mechanics:
+
+"Build me an interactive web app to help a learner understand shoulder tilt and barrel tilt in a batting swing.
+
+SPECIFICATIONS:
+1. Feature a simplified animated batter. A stick figure is sufficient.
+2. Give the user two sliders, shoulder tilt and barrel tilt, each ranging from -20 to +20 degrees, with 0 being level.
+3. As shoulder tilt changes, the figure's shoulders rotate, clearly showing the front shoulder rising or falling against the back. Label it "Shoulder Tilt: [X] degrees".
+4. As barrel tilt changes, the bat rotates, clearly showing the barrel tipping toward or away from the plate. Label it "Barrel Tilt: [Y] degrees".
+5. Explain the target for each: shoulder tilt at launch is slightly downward, about 9 degrees; barrel tilt at launch is slightly inward, toward the plate.
+6. Add a button, "Show Ideal Position", which animates smoothly to those values and states that this is the proper tilt at launch.
+7. Add a button, "Reset Position", returning both sliders to 0 and the figure to level.
+[etc.]"
+
+WHAT THESE THREE HAVE IN COMMON, and what yours must share:
+
+- ONE MECHANIC. A keyboard, a scored sequence of choices, two sliders driving one figure. Not a tour of everything the video mentioned. Name the mechanic and build the whole app around it.
+- SPECIFICATIONS THAT CAN BE CHECKED, not described. "-20 to +20 degrees". A label reading exactly "Shoulder Tilt: [X] degrees". Buttons named exactly "Show Ideal Position" and "Reset Position". Anything vague is something the developer has to invent, and invented detail is where these apps go wrong.
+- THE VIDEO'S OWN NUMBERS AND EXAMPLES. Nine degrees, because the video said nine. Moving to a new city, because the video used it. Never a plausible substitute, never a rounded figure, never an example of your own.
+- AN ANSWER STATE. A way for the learner to see what right looks like: an ideal position to jump to, feedback at the end of a run, the correct progression played back.
+- PERMISSION TO BE SIMPLE. "A stick figure is sufficient." Say so where it applies, so effort goes into the mechanic being correct rather than into the drawing.
+
+
 The goal of the app that is to be built based on the spec is to enhance understanding through simple and playful design. The provided spec should not be overly complex, i.e., a junior web developer should be able to implement it in a single html file (with all styles and scripts inline). Most importantly, the spec must clearly outline the core mechanics of the app, and those mechanics must be highly effective in reinforcing the given video's key idea(s).
 
 Write the spec in English regardless of the language spoken in the video. The spec is a build brief for a developer, not user-facing text.`;
