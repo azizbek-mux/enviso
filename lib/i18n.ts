@@ -100,7 +100,9 @@ export const strings = {
   savedCopied: 'Copied to clipboard instead',
   saveFailedMsg: 'Could not save the file',
   share: 'Share',
-  shareText: 'I made an interactive learning app from this:',
+  shareTextVideo: 'I made an interactive learning app from this with Enviso —',
+  shareTextPaper: 'I made an interactive explainer from this with Enviso —',
+  shareFooter: 'Make your own:',
   saveFailed: 'Could not save this to your history',
 
   historyTitle: 'Your apps',

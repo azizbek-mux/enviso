@@ -60,6 +60,11 @@ export function decodeSource(param: string): LinkSource | null {
   }
 }
 
+/** Where to send someone who wants to make their own. Empty until registered. */
+export function appLink(): string | null {
+  return MINI_APP_PATH ? `https://t.me/${MINI_APP_PATH}` : null;
+}
+
 /** A link that opens this Mini App with the given source ready to build. */
 export function shareLink(source: Source): string | null {
   const packed = encodeSource(source);

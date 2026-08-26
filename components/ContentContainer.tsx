@@ -36,7 +36,7 @@ import {
 import {type SaveOutcome, saveHtml, toFileName} from '@/lib/download';
 import {saveHistory} from '@/lib/history';
 import {withWorkingNav} from '@/lib/injectNav';
-import {shareLink} from '@/lib/deeplink';
+import {appLink, shareLink} from '@/lib/deeplink';
 import {expandPaperUrl, type Source} from '@/lib/source';
 import {currentPalette, haptic, notify, shareToChat} from '@/lib/telegram';
 import {
@@ -557,7 +557,18 @@ export default function ContentContainer({
     const link = shareLink(source);
     if (!link) return;
     haptic();
-    shareToChat(link, `${t.shareText} ${summaryTitle()}`);
+
+    // Name the app in the message. A shared link that says only "look at
+    // this paper" tells nobody where the thing they are looking at came from.
+    const lead = source.kind === 'paper' ? t.shareTextPaper : t.shareTextVideo;
+    const home = appLink();
+    const message = home
+      ? `${lead} ${summaryTitle()}
+
+${t.shareFooter} ${home}`
+      : `${lead} ${summaryTitle()}`;
+
+    shareToChat(link, message);
   };
 
   const handleRetry = () => {
