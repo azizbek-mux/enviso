@@ -64,7 +64,23 @@
   box-sizing: border-box;
 }
 
-html,
+/*
+ * Scrolling inside a Telegram Mini App is easy to break from here.
+ *
+ * `overflow-x: hidden` on the body forces overflow-y to compute as auto,
+ * which makes the body itself the scroll container instead of the viewport --
+ * and inside Telegram's webview that is the difference between the page
+ * scrolling and nothing happening at all. `clip` prevents sideways overflow
+ * without creating a scroll container. `overscroll-behavior-y: none` is gone
+ * for the same reason: paired with Telegram's own swipe handling it swallowed
+ * the gesture.
+ */
+html {
+  margin: 0;
+  padding: 0;
+  height: auto;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -72,9 +88,10 @@ body {
   color: var(--color-text);
   font-family: var(--font-primary);
   font-size: 16px;
+  height: auto;
   line-height: 1.45;
-  overflow-x: hidden;
-  overscroll-behavior-y: none;
+  min-height: 100%;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }

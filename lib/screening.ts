@@ -30,10 +30,23 @@ export class VideoRejectedError extends Error {
     readonly reason: RejectionReason,
     /** Extra context, e.g. the detected language or length. */
     readonly detail?: string,
+    /** The model's own sentence explaining the judgement. */
+    readonly said?: string,
   ) {
     super(reason);
     this.name = 'VideoRejectedError';
   }
+}
+
+/**
+ * Whether the user may overrule this refusal.
+ *
+ * Length is a hard limit -- an hour of video costs what it costs. The rest are
+ * judgements about content, and the person who chose the video knows it better
+ * than a model that watched it once.
+ */
+export function isOverridable(reason: RejectionReason): boolean {
+  return reason !== 'tooLong';
 }
 
 /** What the model reports back about the video before writing anything. */
@@ -88,6 +101,7 @@ export function assertUsable(
   screening: Screening,
   kind: 'video' | 'paper' = 'video',
 ): void {
+  const said = screening.reason;
   const {language, durationMinutes, contentKind, audioQuality, teachable} =
     screening;
 
@@ -99,29 +113,38 @@ export function assertUsable(
     throw new VideoRejectedError(
       'tooLong',
       `${Math.round(durationMinutes)} min`,
+      said,
     );
   }
 
   if (!paper && contentKind === 'music') {
-    throw new VideoRejectedError('music');
+    throw new VideoRejectedError('music', undefined, said);
   }
 
   // For a paper this means the model reached a paywall, a scan it could not
   // parse, or nothing at all -- so anything it wrote would be invention.
   if (audioQuality === 'none' || audioQuality === 'unclear') {
-    throw new VideoRejectedError(paper ? 'unreadable' : 'noisy');
+    throw new VideoRejectedError(paper ? 'unreadable' : 'noisy', undefined, said);
   }
 
   const spoken = normalise(language);
   if (!ALLOWED_LANGUAGES.some((allowed) => spoken.startsWith(allowed))) {
-    throw new VideoRejectedError('language', language);
+    throw new VideoRejectedError('language', language, said);
   }
 
   if (!teachable || contentKind !== 'educational') {
-    throw new VideoRejectedError(paper ? 'notResearch' : 'notEducational');
+    throw new VideoRejectedError(
+      paper ? 'notResearch' : 'notEducational',
+      undefined,
+      said,
+    );
   }
 
   if (!screening.spec?.trim()) {
-    throw new VideoRejectedError(paper ? 'notResearch' : 'notEducational');
+    throw new VideoRejectedError(
+      paper ? 'notResearch' : 'notEducational',
+      undefined,
+      said,
+    );
   }
 }

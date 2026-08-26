@@ -32,6 +32,8 @@ export const strings = {
   checkingPaper: 'Finding the full text...',
 
   rejectTitle: 'This video will not work',
+  rejectWhy: 'It said:',
+  generateAnyway: 'Build it anyway',
   rejectTitlePaper: 'This publication will not work',
   paperFound: 'Found',
   rejectTooLong:
