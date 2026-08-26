@@ -16,7 +16,7 @@ import {
 } from '@/lib/explainerPrompts';
 import {
   FACTS_FROM_PAPER_PROMPT,
-  LESSON_FROM_VIDEO_PROMPT,
+  buildSpecAddendum,
   JSON_ONLY_INSTRUCTION,
   PAPER_RESPONSE_SCHEMA,
   SPEC_FROM_PAPER_PROMPT,
@@ -37,7 +37,7 @@ import {saveHistory} from '@/lib/history';
 import {withWorkingNav} from '@/lib/injectNav';
 import {shareLink} from '@/lib/deeplink';
 import {expandPaperUrl, type Source} from '@/lib/source';
-import {haptic, notify, shareToChat} from '@/lib/telegram';
+import {currentPalette, haptic, notify, shareToChat} from '@/lib/telegram';
 import {
   DailyQuotaError,
   OverloadedError,
@@ -212,15 +212,16 @@ export default function ContentContainer({
         video ? SPEC_FROM_VIDEO_PROMPT : SPEC_FROM_PAPER_PROMPT,
         video ? SPEC_RESPONSE_SCHEMA : PAPER_RESPONSE_SCHEMA,
       ),
-      // A lesson needs its substance extracted just as a paper does: an app
-      // built from prose is a summary with buttons, where one built from real
-      // definitions, examples and a question bank can actually test someone.
-      ask(video ? LESSON_FROM_VIDEO_PROMPT : FACTS_FROM_PAPER_PROMPT, null, {
-        thinkingConfig: {thinkingLevel: 'LOW' as never},
-      }).catch((err) => {
-        console.warn('Data extraction failed:', err);
-        return '';
-      }),
+      // Only a paper has a data layer to extract. A video app is one
+      // self-contained thing, built in a single pass.
+      video
+        ? Promise.resolve('')
+        : ask(FACTS_FROM_PAPER_PROMPT, null, {
+            thinkingConfig: {thinkingLevel: 'LOW' as never},
+          }).catch((err) => {
+            console.warn('Facts extraction failed:', err);
+            return '';
+          }),
     ]);
 
     const screening = parseJSON(planText) as Screening;
@@ -377,7 +378,22 @@ export default function ContentContainer({
     [runOnBestModel, source.kind, t.buildingPart],
   );
 
-  const generateCodeFromSpec = generateSite;
+  /**
+   * A paper is built in parts; a video is not.
+   *
+   * The multi-part machinery exists because a research site does not fit in
+   * one output budget. A learning app does, and building it in pieces made it
+   * read like a document assembled from sections rather than one thing.
+   */
+  const generateCodeFromSpec = useCallback(
+    async (baseSpec: string) => {
+      if (source.kind === 'paper') return generateSite(baseSpec);
+
+      const prompt = baseSpec + buildSpecAddendum(currentPalette(), 'video');
+      return parseHTML(await runOnBestModel(prompt));
+    },
+    [source.kind, runOnBestModel, generateSite],
+  );
 
   const runGeneration = useCallback(async () => {
     try {

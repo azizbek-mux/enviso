@@ -6,10 +6,8 @@ from that plan.
 
 Two sections, one API key:
 
-- **Video** — a YouTube lesson becomes an app the learner practises with:
-  a model they manipulate, a worked example revealed a step at a time, a
-  question bank with reasons rather than marks, the misconceptions sorted, and
-  a recap sheet to keep.
+- **Video** — a YouTube lesson becomes a single self-contained interactive app
+  built around its core mechanic, in one pass.
 - **Research** — a paper becomes a long-form explainer *website*: hero, the
   problem, the mechanism, an interactive visual, the numbers, the limitations,
   the citation. From an uploaded PDF or a link the model retrieves itself.
@@ -117,34 +115,11 @@ numbers and full table rows; for a video, the lesson data — concepts, terms,
 worked examples, misconceptions and a bank of twelve to twenty questions
 spanning recall, apply and transfer. Everything later is computed from it.
 
-Both paths run the same machinery, and nothing else about them is shared.
-
-A paper produces a **document**: Playfair over Inter, cream and gold, a
-title-page hero, eyebrows above headings, a drop cap, a pull quote, author
-cards, a citation footer. It is meant to be read.
-
-A lesson produces an **app**: one sans family, white ground, the identity's
-accent used confidently, a sticky bar with a progress indicator, stacked
-full-width choice buttons, feedback in place under the choice in green or red.
-It is meant to be used. None of the editorial styling is inherited — a serif
-says "read me", which is the wrong instinct for practice.
-
-The instrument catalogues differ too: a paper gets Manhattan plots and forest
-plots, a lesson gets quizzes, sequence builders and flashcards.
-
-**Phase 2, four at once.** The shell and every section go into one pool. The
-shell carries the head, the fixed header, the hero and the language machinery;
-each section carries its own instrument. Sections used to wait for the shell so
-they could reuse its CSS classes, but the styling is Tailwind now, so the class
-vocabulary comes from the brief and nothing waits for anything else.
-
-**Stitching.** Each section replaces its placeholder. A part that fails is
-retried once, then skipped rather than losing the site; credits falls back to
-markup built straight from the facts, since attribution is pure data.
-
-Eight calls in series became three waves. Four concurrent rather than seven is
-bounded by a free key's tokens-per-minute, not its request rate: every part
-carries the plan and the facts as input.
+The two paths are not the same shape. A research site does not fit in one
+output budget, so it is planned, extracted and built in parts. A learning app
+does fit, and building it in pieces made it read like a document assembled
+from sections rather than one thing — so it is written in a single pass, as it
+originally was.
 
 ## How generation works
 
