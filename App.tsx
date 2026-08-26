@@ -479,13 +479,21 @@ export default function App() {
 function Styles() {
   return (
     <style>{`
+      /*
+       * Insets come from Telegram where it runs, and from the device
+       * otherwise. Telegram's own header overlays the page on some platforms,
+       * so content placed under it would simply be unreachable.
+       */
       .app {
         display: flex;
         flex-direction: column;
         gap: 1rem;
         margin: 0 auto;
-        max-width: 720px;
-        padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+        max-width: 640px;
+        padding-block: calc(1rem + var(--tg-inset-top, env(safe-area-inset-top, 0px)))
+          calc(1.5rem + var(--tg-inset-bottom, env(safe-area-inset-bottom, 0px)));
+        padding-inline: calc(1rem + var(--tg-inset-left, env(safe-area-inset-left, 0px)))
+          calc(1rem + var(--tg-inset-right, env(safe-area-inset-right, 0px)));
         width: 100%;
       }
 
@@ -542,11 +550,17 @@ function Styles() {
         gap: 0.35rem;
       }
 
+      /* A touch target, not just a glyph: 44px is the smallest a finger
+         reliably hits. */
       .settings-button {
-        font-size: 1.15rem;
+        align-items: center;
+        display: flex;
+        font-size: 1.2rem;
+        justify-content: center;
         line-height: 1;
-        min-height: 32px;
-        padding: 0.2rem 0.35rem;
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
       }
 
       .mode-switch {
@@ -564,7 +578,7 @@ function Styles() {
         color: var(--color-hint);
         flex: 1;
         font-size: 0.9rem;
-        min-height: 38px;
+        min-height: 42px;
         padding: 0.35rem 0.75rem;
       }
 
@@ -704,26 +718,112 @@ function Styles() {
         width: 24px;
       }
 
-      @media (min-width: 900px) {
+      /* Tablet: still one column, but with room to breathe. */
+      @media (min-width: 640px) {
         .app {
-          display: grid;
-          gap: 1.25rem 1.5rem;
-          grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
-          max-width: 1200px;
-          padding: 1.5rem;
+          gap: 1.25rem;
+          max-width: 760px;
+          padding-block: calc(1.5rem + var(--tg-inset-top, env(safe-area-inset-top, 0px)))
+            calc(2rem + var(--tg-inset-bottom, env(safe-area-inset-bottom, 0px)));
         }
 
-        .header,
-        .mode-switch,
-        .controls,
-        .video {
-          grid-column: 1;
+        .title {
+          font-size: 1.55rem;
         }
 
         .output {
-          grid-column: 2;
-          grid-row: 1 / span 4;
-          min-height: min(80vh, 760px);
+          min-height: 520px;
+        }
+      }
+
+      /*
+       * Desktop: a fixed rail beside the output.
+       *
+       * Every control lives in column one and the result fills column two,
+       * which stays in view while the rail scrolls. The rail's rows are listed
+       * explicitly rather than spanned by count, since a miscount silently
+       * drops whichever item was added last into the wrong column.
+       */
+      @media (min-width: 1024px) {
+        .app {
+          align-items: start;
+          display: grid;
+          gap: 1.25rem 1.75rem;
+          grid-template-areas:
+            'brand output'
+            'modes output'
+            'form output'
+            'media output'
+            'past output';
+          grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+          grid-template-rows: auto auto auto auto 1fr;
+          max-width: 1320px;
+          min-height: var(--tg-viewport-height, 100dvh);
+        }
+
+        .header {
+          grid-area: brand;
+        }
+
+        .mode-switch {
+          grid-area: modes;
+        }
+
+        .controls {
+          grid-area: form;
+        }
+
+        .video {
+          grid-area: media;
+        }
+
+        .history {
+          align-self: start;
+          grid-area: past;
+          overflow-y: auto;
+        }
+
+        .output {
+          grid-area: output;
+          height: 100%;
+          min-height: min(
+            calc(var(--tg-viewport-height, 100dvh) - 3.5rem),
+            860px
+          );
+          position: sticky;
+          top: 1.5rem;
+        }
+
+        .chooser {
+          grid-area: brand / brand / past / output;
+        }
+      }
+
+      /* Wide desktop: more room for the result, not for the rail. */
+      @media (min-width: 1440px) {
+        .app {
+          grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+          max-width: 1560px;
+        }
+      }
+
+      /* A phone held sideways has almost no height to spare. */
+      @media (max-height: 520px) and (orientation: landscape) {
+        .app {
+          gap: 0.75rem;
+        }
+
+        .title {
+          font-size: 1.15rem;
+        }
+
+        .subtitle,
+        .intro-steps {
+          display: none;
+        }
+
+        .output {
+          min-height: 320px;
         }
       }
     `}</style>

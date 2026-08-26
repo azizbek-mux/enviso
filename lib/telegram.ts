@@ -32,7 +32,12 @@ interface TelegramWebApp {
   colorScheme: 'light' | 'dark';
   themeParams: ThemeParams;
   viewportStableHeight: number;
+  viewportHeight: number;
   isExpanded: boolean;
+  /** Device notches and rounded corners (Bot API 8.0). */
+  safeAreaInset?: {top: number; bottom: number; left: number; right: number};
+  /** Space the Telegram client's own chrome occupies (Bot API 8.0). */
+  contentSafeAreaInset?: {top: number; bottom: number; left: number; right: number};
   ready: () => void;
   expand: () => void;
   isVersionAtLeast: (version: string) => boolean;
@@ -122,7 +127,10 @@ export function initTelegram() {
   applyTheme();
   tg.onEvent('themeChanged', applyTheme);
   tg.onEvent('viewportChanged', applyViewport);
+  tg.onEvent('safeAreaChanged', applyInsets);
+  tg.onEvent('contentSafeAreaChanged', applyInsets);
   applyViewport();
+  applyInsets();
 }
 
 /**
@@ -150,10 +158,34 @@ export function applyTheme() {
 
 function applyViewport() {
   if (!tg) return;
-  document.documentElement.style.setProperty(
-    '--tg-viewport-height',
-    `${tg.viewportStableHeight}px`,
+  const root = document.documentElement;
+  root.style.setProperty('--tg-viewport-height', `${tg.viewportStableHeight}px`);
+  root.style.setProperty(
+    '--tg-viewport-full',
+    `${tg.viewportHeight || tg.viewportStableHeight}px`,
   );
+}
+
+/**
+ * Publish Telegram's own insets as CSS variables.
+ *
+ * `env(safe-area-inset-*)` covers the device's notch, but not the space the
+ * Telegram client itself occupies -- its header sits over the page on some
+ * platforms, and content placed under it is simply unreachable. Telegram
+ * reports both, and the larger of the two is the one that matters.
+ */
+function applyInsets() {
+  if (!tg) return;
+  const root = document.documentElement;
+  const device = tg.safeAreaInset;
+  const content = tg.contentSafeAreaInset;
+
+  const largest = (side: 'top' | 'bottom' | 'left' | 'right') =>
+    Math.max(device?.[side] ?? 0, content?.[side] ?? 0);
+
+  (['top', 'bottom', 'left', 'right'] as const).forEach((side) => {
+    root.style.setProperty(`--tg-inset-${side}`, `${largest(side)}px`);
+  });
 }
 
 /** The palette actually on screen right now, for embedding into prompts. */

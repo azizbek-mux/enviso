@@ -31,6 +31,27 @@ Based on Aaron Wade's Google AI Studio sample, rebuilt for Telegram.
 3. **The app**, in the mode chosen. The switch stays in the header for changing
    without going back.
 
+## Across devices
+
+One layout, four shapes:
+
+| Width | Shape |
+|---|---|
+| under 640 | single column, full width |
+| 640–1023 | single column, 760px measure, roomier type |
+| 1024+ | a 380px rail of controls beside a sticky result |
+| 1440+ | same rail, more room for the result |
+
+A phone held sideways drops the subtitle and the step list, since a 400px-tall
+viewport has none to spare. Every tap target is at least 44px.
+
+Telegram's insets are honoured, not just the device's. `env(safe-area-inset-*)`
+covers a notch but not the space the client's own header occupies, and content
+placed under that is simply unreachable — so `safeAreaInset` and
+`contentSafeAreaInset` are published as CSS variables and the larger of the two
+wins. Height comes from `viewportStableHeight` rather than `100dvh`, because
+the two differ inside a Mini App sheet.
+
 ## Running cost: $0
 
 | Piece | How | Cost |

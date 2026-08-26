@@ -830,7 +830,7 @@ export default function ContentContainer({
           color: var(--color-hint);
           flex: 1;
           font-size: 0.9rem;
-          min-height: 38px;
+          min-height: 44px;
           padding: 0.4rem 0.5rem;
         }
 
@@ -883,7 +883,8 @@ export default function ContentContainer({
           flex: 0 0 auto;
           font-size: 1rem;
           line-height: 1;
-          min-height: 38px;
+          min-height: 44px;
+          min-width: 44px;
           padding: 0.4rem 0.7rem;
         }
 

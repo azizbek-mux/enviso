@@ -132,9 +132,10 @@ button:active:not(:disabled) {
 
 .button-ghost {
   background: transparent;
-  color: var(--color-accent);
-  min-height: 36px;
-  padding: 0.35rem 0.6rem;
+  color: var(--color-brand);
+  /* Transparent, so the hit area can reach 44px without looking heavy. */
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
 }
 
 input,
