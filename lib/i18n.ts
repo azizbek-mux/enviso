@@ -18,7 +18,7 @@ export const strings = {
   subtitlePaper: 'Turn a research paper into an interactive explainer',
   inputLabel: 'Paste a YouTube link',
   inputPlaceholder: 'https://www.youtube.com/watch?v=...',
-  generate: 'Generate app',
+  generate: 'Generate',
   validating: 'Checking link...',
   generating: 'Generating...',
   regenerate: 'Generate again',
@@ -75,7 +75,6 @@ export const strings = {
     'This site blocks automated readers, so the paper cannot be fetched. Upload the PDF instead.',
   hintDoi:
     'A DOI leads to the publisher, so only the abstract may be readable. Upload the PDF if it is paywalled.',
-  generatePaper: 'Build explainer',
   paperPlaceholderText: 'Your explainer will appear here',
   paperStep1: 'Paste a link to a paper, or upload its PDF',
   paperStep2: 'Gemini reads it and designs an interactive explainer',

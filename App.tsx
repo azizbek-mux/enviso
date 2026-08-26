@@ -166,9 +166,7 @@ export default function App() {
       ? t.generating
       : source
         ? t.regenerate
-        : mode === 'video'
-          ? t.generate
-          : t.generatePaper;
+        : t.generate;
 
   // Telegram's bottom bar is where a Mini App user reaches for the primary
   // action, so the in-page button steps aside whenever it exists.
