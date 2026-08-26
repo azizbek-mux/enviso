@@ -358,6 +358,13 @@ ${networkRule}
 - If you need audio, synthesize it with the Web Audio API and only start the AudioContext inside a user gesture handler, since mobile browsers block autoplay.
 - The document must never scroll horizontally. Long content scrolls vertically inside its own container.
 
+TEXT MUST NEVER BE CLIPPED OR COLLIDE. This is the most common way these apps break on a phone, so treat it as a hard requirement:
+- A ROW OF TABS, STEPS OR CHIPS is the usual culprit. At 360px a strip of five labelled steps cannot fit side by side. Either make the row scroll -- display:flex; overflow-x:auto; gap; with every item flex:0 0 auto and white-space:nowrap -- or let it wrap onto more than one line. NEVER let labels shrink until they overlap, and never cut a label mid-word.
+- Give nothing that contains text a fixed height. Let it grow. A button, a card or a cell must size itself to its label, not the other way round.
+- Long unbroken strings -- a chemical name, a URL, an identifier -- need overflow-wrap: anywhere so they cannot push a container wider than the screen.
+- Check every label at its longest. If one step is called "Immune Evasion" and another "Post-Exposure Prophylaxis", the layout has to hold at the longer one.
+- Where a label genuinely will not fit, shorten the text itself rather than letting the box clip it.
+
 VISUAL THEME (match the surrounding Telegram client)
 - Colour scheme: ${palette.scheme}
 - Page background: ${palette.background}

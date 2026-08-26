@@ -137,6 +137,7 @@ const SANDBOX_CONTRACT = `RUNTIME -- a sandboxed iframe on a phone.
 - Do NOT use localStorage, sessionStorage, cookies or IndexedDB. Access throws and breaks the page.
 - Do NOT fetch anything. The only remote assets are the ones the shell already declares: Tailwind, Google Fonts, and three.js through its importmap. Add no others.
 - The page must never scroll sideways. Interactive targets at least 44x44px. Never rely on hover.
+- TEXT MUST NEVER BE CLIPPED OR COLLIDE. A row of tabs, steps or filter chips cannot fit side by side at 360px: either make the row scroll (display:flex; overflow-x:auto; each item flex:0 0 auto; white-space:nowrap) or let it wrap. Never shrink labels until they overlap and never cut one mid-word. Give nothing containing text a fixed height. Long unbroken strings need overflow-wrap:anywhere. Check every label at its longest one, not its shortest.
 - Never navigate. No <a href> to another page, no location changes, no target="_blank" except a real external citation link. In-page links are handled for you by the shell.`;
 
 /**
