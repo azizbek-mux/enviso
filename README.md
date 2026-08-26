@@ -144,6 +144,35 @@ small, and a CDN is a failure point it does not need. An explainer website may
 load **three.js and nothing else**, from a pinned unpkg URL, since real 3D is
 not worth hand-rolling in WebGL.
 
+## What it refuses
+
+A **video** is refused for three things only, and all three are facts about the
+recording rather than judgements about its worth:
+
+| Refused | Because |
+|---|---|
+| A music video | the point of it is a song |
+| Nobody speaks | rain, birdsong, ambience — no words to build from |
+| Not English or Russian | a lesson built on a misheard one teaches something wrong |
+
+Anything else is built — documentaries, essays, vlogs with a point, noisy
+audio. Whether a subject was "teachable" used to be judged too, and it was
+judged badly: an essay on attention was called unteachable while an essay on
+friendship, same channel and same shape, became a good app. Finding the
+mechanic is the model's job, not grounds to refuse.
+
+A **paper** is stricter, because it is either readable or it is not. A paywall
+page, a scan that could not be parsed, or something that is not a publication
+are all refused, since an explainer written from them would be invention.
+
+**Length** limits both: over 30 minutes is refused in the browser, before any
+Gemini call, since watching an hour of video is the most expensive request the
+app can make.
+
+Every refusal shows the model's own sentence explaining it, and every one
+except length offers **Build it anyway** — the person who chose the source
+knows it better than a model that watched it once.
+
 ## What it does beyond generating
 
 - **History.** Finished apps are kept in IndexedDB and reopen instantly, with
