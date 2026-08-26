@@ -168,12 +168,17 @@ export default function App() {
         ? t.regenerate
         : t.generate;
 
-  // Telegram's bottom bar is where a Mini App user reaches for the primary
-  // action, so the in-page button steps aside whenever it exists.
+  /*
+   * Telegram's bottom bar carries the primary action, but only where there is
+   * one. It was showing "Generate" on the key screen and on the chooser --
+   * screens whose action is a card or a field, not a button, and where
+   * pressing it did nothing. It appears once a key exists and a mode has been
+   * chosen, and not before.
+   */
   useEffect(() => {
-    if (!isTelegram || panelOpen) return;
+    if (!isTelegram || panelOpen || !apiKey || !mode) return;
     return setMainButton(
-      {text: mainButtonLabel, visible: true, busy: busy},
+      {text: mainButtonLabel, visible: true, busy},
       () => void handleSubmit(),
     );
   });
