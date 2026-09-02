@@ -48,6 +48,9 @@ const MAX_CHAIN_LENGTH = 6;
 /** Remembers the model that last worked, so the next run starts there. */
 const PREFERRED_MODEL_KEY = 'preferred_model';
 
+/** Remembers the models this key has been told no longer exist. */
+const RETIRED_MODELS_KEY = 'retired_models';
+
 export class QuotaError extends Error {}
 /**
  * The key's allowance for this model is spent for the day.
@@ -58,7 +61,16 @@ export class QuotaError extends Error {}
  */
 export class DailyQuotaError extends QuotaError {}
 export class AuthError extends Error {}
-export class ModelError extends Error {}
+export class ModelError extends Error {
+  /**
+   * True when the model itself is gone, rather than merely unsuited to this
+   * request. A retired id never comes back, but "is not supported" may only
+   * mean this model cannot take a video -- it is still fine for text.
+   */
+  constructor(message: string, readonly gone = false) {
+    super(message);
+  }
+}
 /** Google's capacity problem, not ours: worth asking a different model. */
 export class OverloadedError extends Error {}
 
@@ -182,6 +194,39 @@ function moveToFront(chain: string[], id: string): string[] {
 }
 
 /**
+ * Models this key was told are gone.
+ *
+ * Google keeps retired ids in the listing: gemini-2.5-pro is still returned,
+ * with the same shape and the same supportedGenerationMethods as a live
+ * model, and only 404s when it is actually called. So a dead model can be
+ * found only by calling it, and remembering the answer is the only way the
+ * next run does not spend a chain slot rediscovering it.
+ */
+let retiredModels: Set<string> | null = null;
+
+async function loadRetiredModels(): Promise<Set<string>> {
+  if (!retiredModels) {
+    const saved = await storage.get(RETIRED_MODELS_KEY);
+    retiredModels = new Set(saved ? saved.split(',').filter(Boolean) : []);
+  }
+  return retiredModels;
+}
+
+/** Never ask this key for this model again. */
+function rememberRetiredModel(id: string) {
+  const known = (retiredModels ??= new Set());
+  if (known.has(id)) return;
+  known.add(id);
+  void storage.set(RETIRED_MODELS_KEY, [...known].join(','));
+  if (cachedChoice) {
+    cachedChoice = {
+      ...cachedChoice,
+      chain: cachedChoice.chain.filter((entry) => entry !== id),
+    };
+  }
+}
+
+/**
  * Record the model that just worked.
  *
  * Contention is not evenly spread: one key's newest model can be busy all day
@@ -212,7 +257,10 @@ export async function resolveModels(apiKey: string): Promise<ModelChoice> {
   }
 
   try {
-    const ranked = await listUsableModels(apiKey);
+    const retired = await loadRetiredModels();
+    const ranked = (await listUsableModels(apiKey)).filter(
+      (model) => !retired.has(model.id),
+    );
     const models = demoteNewest(ranked);
     const flash = models.filter((m) => m.tier === 2);
     const capable = models.filter((m) => m.tier >= 2);
@@ -310,6 +358,8 @@ export async function acrossModels<T>(
 ): Promise<T> {
   let lastError: Error = new Error('No usable Gemini model found');
   let quotaHits = 0;
+  /** Models that already refused this exact request. */
+  const exhausted = new Set<string>();
 
   for (let round = 0; round < ROUND_DELAYS_MS.length; round++) {
     const wait = ROUND_DELAYS_MS[round];
@@ -320,6 +370,7 @@ export async function acrossModels<T>(
 
     for (let i = 0; i < chain.length; i++) {
       const model = chain[i];
+      if (exhausted.has(model)) continue;
       try {
         const result = await attempt(model);
         rememberWorkingModel(model);
@@ -327,6 +378,17 @@ export async function acrossModels<T>(
       } catch (error) {
         if (!isRecoverable(error)) throw error;
         lastError = error as Error;
+
+        /*
+         * A model that is missing, or cannot take this request at all, will
+         * answer a second pass exactly as it answered the first. Drop it for
+         * the rest of this run, and if it is gone for good, for every run
+         * after it too.
+         */
+        if (error instanceof ModelError) {
+          exhausted.add(model);
+          if (error.gone) rememberRetiredModel(model);
+        }
 
         /*
          * A rate limit belongs to the key, not to the model, so walking the
@@ -419,7 +481,9 @@ function classify(error: unknown): Error {
     status === 404 ||
     /not found|no longer available|NOT_FOUND|is not supported/i.test(raw)
   ) {
-    return new ModelError(message);
+    const gone =
+      status === 404 || /not found|no longer available|NOT_FOUND/i.test(raw);
+    return new ModelError(message, gone);
   }
   if (
     status === 401 ||
