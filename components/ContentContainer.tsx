@@ -35,7 +35,13 @@ import {
   assertUsable,
   isOverridable,
 } from '@/lib/screening';
-import {type SaveOutcome, saveHtml, toFileName} from '@/lib/download';
+import {
+  type CopyOutcome,
+  type SaveOutcome,
+  copyHtml,
+  downloadHtml,
+  toFileName,
+} from '@/lib/download';
 import {saveHistory} from '@/lib/history';
 import {withWorkingNav} from '@/lib/injectNav';
 import {appLink, shareLink} from '@/lib/deeplink';
@@ -106,6 +112,7 @@ export default function ContentContainer({
   );
   const [showPlan, setShowPlan] = useState(false);
   const [saveState, setSaveState] = useState<SaveOutcome | null>(null);
+  const [copyState, setCopyState] = useState<CopyOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rejection, setRejection] = useState<VideoRejectedError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -554,19 +561,35 @@ export default function ContentContainer({
   const handleSave = async () => {
     if (!code) return;
     haptic('medium');
-    const outcome = await saveHtml(toFileName(summaryTitle()), code);
+    const outcome = await downloadHtml(toFileName(summaryTitle()), code);
     setSaveState(outcome);
-    notify(outcome === 'failed' ? 'error' : 'success');
+    // Not 'success': the download starting is not the file arriving, and a
+    // congratulatory buzz over a file that never landed is the same lie the
+    // label used to tell.
+    notify(outcome === 'failed' ? 'error' : 'warning');
+  };
+
+  const handleCopy = async () => {
+    if (!code) return;
+    haptic('medium');
+    const outcome = await copyHtml(code);
+    setCopyState(outcome);
+    notify(outcome === 'copied' ? 'success' : 'error');
   };
 
   const saveLabel =
-    saveState === 'saved'
-      ? t.saved
-      : saveState === 'copied'
-        ? t.savedCopied
-        : saveState === 'failed'
-          ? t.saveFailedMsg
-          : t.save;
+    saveState === 'attempted'
+      ? t.saveStarted
+      : saveState === 'failed'
+        ? t.saveFailedMsg
+        : t.save;
+
+  const copyLabel =
+    copyState === 'copied'
+      ? t.copied
+      : copyState === 'failed'
+        ? t.copyFailedMsg
+        : t.copy;
 
   const canShare = shareLink(source) !== null;
 
@@ -830,16 +853,29 @@ ${t.shareFooter} ${home}`
         </div>
 
         {loadingState === 'ready' && (
-          <div className="pane-actions">
-            <button className="button-primary" onClick={handleSave}>
-              {saveLabel}
-            </button>
-            {canShare && (
-              <button className="button-secondary" onClick={handleShare}>
-                {t.share}
+          <>
+            <div className="pane-actions">
+              <button className="button-primary" onClick={handleSave}>
+                {saveLabel}
               </button>
+              <button className="button-secondary" onClick={handleCopy}>
+                {copyLabel}
+              </button>
+              {canShare && (
+                <button className="button-secondary" onClick={handleShare}>
+                  {t.share}
+                </button>
+              )}
+            </div>
+            {/*
+              Only after an attempt, and only until the copy lands: a browser
+              that swallows downloads gives no signal, so the way out is
+              offered rather than the outcome asserted.
+            */}
+            {saveState === 'attempted' && copyState !== 'copied' && (
+              <p className="hint save-unsure">{t.saveUnsure}</p>
             )}
-          </div>
+          </>
         )}
       </div>
     );
@@ -944,6 +980,11 @@ ${t.shareFooter} ${home}`
           gap: 0.6rem;
           min-height: 0;
           padding: 0.75rem;
+        }
+
+        .save-unsure {
+          font-size: 0.8rem;
+          margin: 0.5rem 0 0;
         }
 
         .pane-actions {

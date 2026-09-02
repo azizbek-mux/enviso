@@ -15,16 +15,26 @@ export function toFileName(title: string, fallback = 'explainer'): string {
   return `${cleaned || fallback}.html`;
 }
 
-export type SaveOutcome = 'saved' | 'copied' | 'failed';
+/** What a save attempt can be honestly said to have done. */
+export type SaveOutcome = 'attempted' | 'failed';
+
+/** What a copy attempt did, which unlike a download is observable. */
+export type CopyOutcome = 'copied' | 'failed';
 
 /**
- * Hand the finished document to the user as a file.
+ * Start a download of the finished document.
  *
- * Telegram's in-app browser blocks downloads on some platforms, so a refusal
- * falls back to the clipboard rather than leaving the user with nothing: the
- * whole point is that the result can leave the app.
+ * Returns "attempted", never "saved", because whether the file arrived is not
+ * knowable from here. A browser that refuses a download refuses it silently:
+ * the click is ignored, nothing throws, and no event fires. Telegram's in-app
+ * browser does exactly that on some platforms.
+ *
+ * This used to claim success and fall back to the clipboard on a thrown
+ * error -- but a silent refusal throws nothing, so the fallback could not
+ * fire and the button reported "Saved" over a file that was nowhere. Copying
+ * is now a button of its own rather than a rescue that never came.
  */
-export async function saveHtml(
+export async function downloadHtml(
   fileName: string,
   html: string,
 ): Promise<SaveOutcome> {
@@ -42,16 +52,39 @@ export async function saveHtml(
 
     // Give the browser a moment to start the download before revoking.
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    return 'saved';
+    return 'attempted';
   } catch (error) {
-    console.warn('Download refused, falling back to the clipboard:', error);
+    console.warn('Could not start the download:', error);
+    return 'failed';
   }
+}
 
+/** Put the whole document on the clipboard. This one we can actually verify. */
+export async function copyHtml(html: string): Promise<CopyOutcome> {
   try {
     await navigator.clipboard.writeText(html);
     return 'copied';
   } catch (error) {
-    console.error('Could not copy the document either:', error);
-    return 'failed';
+    console.warn('Clipboard refused, trying the legacy path:', error);
   }
+
+  /*
+   * execCommand is deprecated but still the only path in some in-app
+   * browsers, which expose no async clipboard at all.
+   */
+  try {
+    const field = document.createElement('textarea');
+    field.value = html;
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0';
+    document.body.appendChild(field);
+    field.select();
+    const ok = document.execCommand('copy');
+    field.remove();
+    if (ok) return 'copied';
+  } catch (error) {
+    console.error('Could not copy the document either:', error);
+  }
+
+  return 'failed';
 }

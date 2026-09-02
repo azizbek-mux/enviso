@@ -117,9 +117,16 @@ export const strings = {
   variationQuiz: 'As a quiz',
 
   save: 'Save as file',
-  saved: 'Saved',
-  savedCopied: 'Copied to clipboard instead',
-  saveFailedMsg: 'Could not save the file',
+  saveStarted: 'Download started',
+  saveFailedMsg: 'Could not start the download',
+  /*
+   * Shown only after a save has been attempted. Whether the file arrived
+   * cannot be detected, so the app says what it did and offers the way out
+   * rather than asserting a success it cannot see.
+   */
+  saveUnsure: 'No file? Some in-app browsers block downloads — use Copy.',
+  copy: 'Copy',
+  copyFailedMsg: 'Could not copy',
   share: 'Share',
   shareTextVideo: 'I made an interactive learning app from this with Enviso —',
   shareTextPaper: 'I made an interactive explainer from this with Enviso —',
