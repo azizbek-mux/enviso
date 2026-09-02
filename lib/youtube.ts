@@ -4,46 +4,49 @@
 */
 /* tslint:disable */
 
-// Function to extract YouTube video ID
+/** A YouTube id is always eleven characters of this alphabet. */
+const VIDEO_ID = /^[\w-]{11}$/;
+
+/**
+ * Paths that carry the id in the segment straight after them.
+ *
+ * "shorts" and "live" are the ones that used to be missing, and both were
+ * refused outright as invalid links -- a short is nearly always under the
+ * length limit, so it was the one kind of video guaranteed to pass screening
+ * and yet impossible to submit.
+ */
+const ID_BEARING = new Set(['embed', 'shorts', 'live', 'v']);
+
+/** The eleven-character id in a YouTube link, or null if there is not one. */
 export const getYouTubeVideoId = (url: string): string | null => {
+  const trimmed = url.trim();
+
   try {
-    const parsedUrl = new URL(url);
-    // Handle standard watch URLs (youtube.com/watch?v=...)
-    if (
-      parsedUrl.hostname === 'www.youtube.com' ||
-      parsedUrl.hostname === 'youtube.com'
-    ) {
-      const videoId = parsedUrl.searchParams.get('v');
-      if (videoId && videoId.length === 11) {
-        return videoId;
-      }
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.slice(1).split('/')[0];
+      if (VIDEO_ID.test(id)) return id;
     }
-    // Handle short URLs (youtu.be/...)
-    if (parsedUrl.hostname === 'youtu.be') {
-      const videoId = parsedUrl.pathname.substring(1); // Remove leading '/'
-      if (videoId && videoId.length === 11) {
-        return videoId;
-      }
+
+    // Covers m.youtube.com and music.youtube.com as well as the bare host.
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      const query = parsed.searchParams.get('v');
+      if (query && VIDEO_ID.test(query)) return query;
+
+      const [, section, id] = parsed.pathname.split('/');
+      if (ID_BEARING.has(section) && VIDEO_ID.test(id ?? '')) return id;
     }
-    // Handle embed URLs (youtube.com/embed/...)
-    if (parsedUrl.pathname.startsWith('/embed/')) {
-      const videoId = parsedUrl.pathname.substring(7); // Length of '/embed/'
-      if (videoId && videoId.length === 11) {
-        return videoId;
-      }
-    }
-  } catch (e) {
-    // Ignore URL parsing errors, means it's likely not a valid URL format
-    console.warn('URL parsing failed:', e);
-  }
-  // Fallback using simplified Regex for other potential edge cases not caught by URL parsing
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  if (match && match[2].length === 11) {
-    return match[2];
+  } catch {
+    // Not a parseable URL. The looser match below still rescues a bare id
+    // pasted with surrounding text.
   }
 
-  return null;
+  const loose = trimmed.match(
+    /(?:youtu\.be\/|\/embed\/|\/shorts\/|\/live\/|\/v\/|[?&]v=)([\w-]{11})/,
+  );
+  return loose ? loose[1] : null;
 };
 
 // Helper function to validate a YouTube video URL
@@ -56,11 +59,11 @@ export async function validateYoutubeUrl(
   return {isValid: false, error: 'Invalid YouTube URL'};
 }
 
-// Helper function to extract YouTube video ID and create embed URL
+/** The embeddable form of a YouTube link. */
 export function getYoutubeEmbedUrl(url: string): string {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  const videoId = match && match[2].length === 11 ? match[2] : null;
+  // Parsed by the one function that knows the shapes, rather than by a second
+  // copy of the pattern that has to be kept in step with it.
+  const videoId = getYouTubeVideoId(url);
 
   if (videoId) {
     return `https://www.youtube.com/embed/${videoId}`;

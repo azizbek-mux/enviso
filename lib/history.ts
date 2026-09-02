@@ -4,6 +4,7 @@
  */
 
 import type {SourceKind} from '@/lib/source';
+import {getYouTubeVideoId} from '@/lib/youtube';
 
 /**
  * Local store of finished generations.
@@ -125,9 +126,6 @@ async function prune(): Promise<void> {
 /** YouTube thumbnail for a stored item, when it came from a video. */
 export function historyThumbnail(item: HistoryItem): string | null {
   if (item.kind !== 'video' || !item.sourceUrl) return null;
-  const match = item.sourceUrl.match(
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/,
-  );
-  const id = match && match[2].length === 11 ? match[2] : null;
+  const id = getYouTubeVideoId(item.sourceUrl);
   return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 }

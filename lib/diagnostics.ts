@@ -50,10 +50,13 @@ async function probe(
 ): Promise<{http: number; message: string; text?: string}> {
   try {
     const response = await fetch(
-      `${API_ROOT}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      `${API_ROOT}/models/${model}:generateContent`,
       {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: JSON.stringify({
           contents: [{role: 'user', parts}],
           ...(tools ? {tools} : {}),

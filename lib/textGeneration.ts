@@ -144,9 +144,9 @@ function byPreference(a: RankedModel, b: RankedModel) {
 
 /** Ask the key which models it may call. Costs no tokens. */
 export async function listUsableModels(apiKey: string): Promise<RankedModel[]> {
-  const response = await fetch(
-    `${API_ROOT}/models?key=${encodeURIComponent(apiKey)}&pageSize=1000`,
-  );
+  const response = await fetch(`${API_ROOT}/models?pageSize=1000`, {
+    headers: {'x-goog-api-key': apiKey},
+  });
   if (!response.ok) {
     throw new Error(`Could not list models (HTTP ${response.status})`);
   }
@@ -610,9 +610,9 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
   const key = apiKey.trim();
   if (!key) return false;
   try {
-    const response = await fetch(
-      `${API_ROOT}/models?key=${encodeURIComponent(key)}&pageSize=1`,
-    );
+    const response = await fetch(`${API_ROOT}/models?pageSize=1`, {
+      headers: {'x-goog-api-key': key},
+    });
     return response.ok;
   } catch (error) {
     console.warn('Key validation request failed:', error);

@@ -684,7 +684,7 @@ function Styles() {
         color: var(--color-hint);
         flex: 1;
         font-size: 0.9rem;
-        min-height: 42px;
+        min-height: 44px;
         padding: 0.35rem 0.75rem;
       }
 
