@@ -14,8 +14,11 @@
 
 export const strings = {
   appName: 'Enviso',
+  /** Shown before a source has been chosen, so it must cover all three. */
+  subtitleAll: 'Turn a video, a paper or a picture into something interactive',
   subtitleVideo: 'Turn a YouTube lesson into an interactive learning app',
   subtitlePaper: 'Turn a research paper into an interactive explainer',
+  subtitleDiagram: 'Turn a picture of something into a working app',
   inputLabel: 'Paste a YouTube link',
   inputPlaceholder: 'https://www.youtube.com/watch?v=...',
   generate: 'Generate',

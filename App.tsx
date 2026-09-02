@@ -326,10 +326,20 @@ export default function App() {
         </span>
         <div className="brand-text">
           <h1 className="title display">{t.appName}</h1>
-          {/* The subtitle follows the mode: a research explainer is not a
-              YouTube lesson, and saying so on both was simply wrong. */}
+          {/*
+            The subtitle follows the mode: a research explainer is not a
+            YouTube lesson, and saying so on both was simply wrong. Before a
+            mode is chosen there is no one source to describe, so it names all
+            three rather than promising whichever happens to be first.
+          */}
           <p className="hint subtitle">
-            {mode === 'paper' ? t.subtitlePaper : t.subtitleVideo}
+            {mode === 'video'
+              ? t.subtitleVideo
+              : mode === 'paper'
+                ? t.subtitlePaper
+                : mode === 'diagram'
+                  ? t.subtitleDiagram
+                  : t.subtitleAll}
           </p>
         </div>
       </div>
