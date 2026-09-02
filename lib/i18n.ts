@@ -14,8 +14,11 @@
 
 export const strings = {
   appName: 'Enviso',
+  /** Shown before a source has been chosen, so it must cover all three. */
+  subtitleAll: 'Turn a video, a paper or a picture into something interactive',
   subtitleVideo: 'Turn a YouTube lesson into an interactive learning app',
   subtitlePaper: 'Turn a research paper into an interactive explainer',
+  subtitleDiagram: 'Turn a picture of something into a working app',
   inputLabel: 'Paste a YouTube link',
   inputPlaceholder: 'https://www.youtube.com/watch?v=...',
   generate: 'Generate',
@@ -50,6 +53,9 @@ export const strings = {
     'Only an abstract or a paywall was reachable, so the full text could not be read. Try the publisher’s own article link instead of a DOI, or upload the PDF.',
   rejectNotResearch:
     'This does not look like a research publication. Try a paper, preprint, or thesis.',
+  rejectTitleDiagram: 'Nothing could be made out',
+  rejectIllegible:
+    'The image came through blank or too unclear to identify anything in it. Try a sharper photo, better light, or a straight-on angle.',
 
   chooseTitle: 'What are you starting from?',
   chooseSubtitle: 'Pick one. You can switch at any time.',
@@ -59,9 +65,13 @@ export const strings = {
   choosePaperTitle: 'A research paper',
   choosePaperBody:
     'A paper becomes an explainer site: the problem, the mechanism made visible, its real numbers as figures you can explore, and the citation.',
+  chooseDiagramTitle: 'A picture of something',
+  chooseDiagramBody:
+    'A sketch, a whiteboard, a flowchart, a form, even a photo of your desk becomes a working app built around whatever it implies.',
 
   modeVideo: 'Video',
   modePaper: 'Research',
+  modeDiagram: 'Picture',
   paperLabel: 'Link to the publication',
   paperPlaceholder: 'https://doi.org/... or arxiv.org/...',
   paperOr: 'or',
@@ -81,6 +91,17 @@ export const strings = {
   paperStep1: 'Paste a link to a paper, or upload its PDF',
   paperStep2: 'Gemini reads it and designs an interactive explainer',
   paperStep3: 'Explore the mechanism it makes visible',
+
+  diagramLabel: 'A picture to build from',
+  diagramUpload: 'Choose an image or PDF',
+  diagramNeedFile: 'Choose an image or a PDF first',
+  diagramTooBig: 'That file is too large. The limit is 12 MB.',
+  diagramUnreadable: 'That file could not be read. Try another.',
+  diagramPlaceholderText: 'Your app will appear here',
+  diagramStep1: 'Upload a sketch, screenshot, diagram or photo',
+  diagramStep2: 'Gemini works out what it implies and designs an app',
+  diagramStep3: 'Use the thing your picture was pointing at',
+  checkingDiagram: 'Reading the picture...',
 
   tabApp: 'App',
   tabSpec: 'About',
@@ -112,6 +133,7 @@ export const strings = {
   historyClear: 'Clear all',
   historyVideo: 'From a video',
   historyPaper: 'From a paper',
+  historyDiagram: 'From a picture',
 
   loadingSpec: 'Watching the video and writing a plan...',
   loadingPaper: 'Reading the publication and writing a plan...',

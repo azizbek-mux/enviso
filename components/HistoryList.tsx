@@ -72,7 +72,11 @@ export default function HistoryList({
                 <span className="history-body">
                   <span className="history-name">{item.title}</span>
                   <span className="history-meta">
-                    {item.kind === 'video' ? t.historyVideo : t.historyPaper}
+                    {item.kind === 'video'
+                      ? t.historyVideo
+                      : item.kind === 'diagram'
+                        ? t.historyDiagram
+                        : t.historyPaper}
                   </span>
                   {summary && <span className="history-summary">{summary}</span>}
                 </span>

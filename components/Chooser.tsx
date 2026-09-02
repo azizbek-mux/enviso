@@ -3,7 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {EmptyIllustration, PaperIllustration} from '@/components/Illustrations';
+import {
+  DiagramIllustration,
+  EmptyIllustration,
+  PaperIllustration,
+} from '@/components/Illustrations';
 import {useSettings} from '@/context';
 import type {SourceKind} from '@/lib/source';
 import {haptic} from '@/lib/telegram';
@@ -47,6 +51,12 @@ export default function Chooser({onChoose}: ChooserProps) {
           <span className="choice-title display">{t.choosePaperTitle}</span>
           <span className="choice-body">{t.choosePaperBody}</span>
         </button>
+
+        <button className="choice" onClick={() => pick('diagram')}>
+          <DiagramIllustration className="choice-art" />
+          <span className="choice-title display">{t.chooseDiagramTitle}</span>
+          <span className="choice-body">{t.chooseDiagramBody}</span>
+        </button>
       </div>
 
       <style>{`
@@ -75,7 +85,7 @@ export default function Chooser({onChoose}: ChooserProps) {
 
         @media (min-width: 720px) {
           .chooser-grid {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
           }
         }
 

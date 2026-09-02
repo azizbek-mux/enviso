@@ -4,7 +4,7 @@ A Telegram Mini App that turns source material into an interactive learning
 app. Gemini reads the source, writes a plan, then writes a single-file web app
 from that plan.
 
-Two sections, one API key:
+Three sections, one API key:
 
 - **Video** — a YouTube lesson becomes a single self-contained interactive app
   built around its core mechanic, in one pass.
@@ -14,6 +14,11 @@ Two sections, one API key:
   Where the subject is genuinely spatial it gets a real 3D scene the reader
   can orbit; where it is not, it gets a diagram, because a gratuitous rotating
   object explains nothing.
+- **Picture** — a sketch, a whiteboard, a flowchart, a form, a textbook
+  diagram or a photograph of an ordinary object becomes a working app built
+  around whatever the picture implies. A drawn wireframe becomes the screen it
+  is a drawing of; a 2x2 table becomes a calculator; a cluttered desk becomes
+  a tidying game. The image is read for what it points at, not reproduced.
 
 Based on Aaron Wade's Google AI Studio sample, rebuilt for Telegram.
 
@@ -115,11 +120,12 @@ numbers and full table rows; for a video, the lesson data — concepts, terms,
 worked examples, misconceptions and a bank of twelve to twenty questions
 spanning recall, apply and transfer. Everything later is computed from it.
 
-The two paths are not the same shape. A research site does not fit in one
-output budget, so it is planned, extracted and built in parts. A learning app
-does fit, and building it in pieces made it read like a document assembled
-from sections rather than one thing — so it is written in a single pass, as it
-originally was.
+The paths are not the same shape. A research site does not fit in one output
+budget, so it is planned, extracted and built in parts. A learning app does
+fit, and building it in pieces made it read like a document assembled from
+sections rather than one thing — so it is written in a single pass, as it
+originally was. A picture takes the learning app's shape for the same reason:
+one screen, one mechanic, one pass.
 
 ## How generation works
 
@@ -164,6 +170,14 @@ mechanic is the model's job, not grounds to refuse.
 A **paper** is stricter, because it is either readable or it is not. A paywall
 page, a scan that could not be parsed, or something that is not a publication
 are all refused, since an explainer written from them would be invention.
+
+A **picture** is refused for one thing only: nothing in it can be made out. A
+blank page, a corrupt file, a photograph too dark to identify anything in. The
+language guard cannot apply, since a wireframe has no language and "None" is
+the normal answer rather than grounds to refuse; nor can teachability, since
+the whole point is that a mundane object becomes something to use. An
+ambiguous sketch is not a failure — the model commits to the most interesting
+defensible reading rather than declining.
 
 **Length** limits both: over 30 minutes is refused in the browser, before any
 Gemini call, since watching an hour of video is the most expensive request the

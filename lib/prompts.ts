@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type {SourceKind} from '@/lib/source';
 
 export const SPEC_FROM_VIDEO_PROMPT = `You are a pedagogist and product designer with deep expertise in crafting engaging learning experiences via interactive web apps.
 
@@ -123,6 +124,92 @@ export const SPEC_RESPONSE_SCHEMA = {
 export const CODE_REGION_OPENER = '```';
 export const CODE_REGION_CLOSER = '```';
 
+
+/* -------------------------------------------------------------------------- */
+/* Diagrams, sketches and photographs                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Screening plus plan for a picture.
+ *
+ * The other two sources are read for what they say. A picture is read for
+ * what it implies: a wireframe implies the screen it is a drawing of, a
+ * flowchart implies the process it charts, a photograph of a cluttered desk
+ * implies the tidying of it. So the brief is to find the mechanic the image
+ * points at and build that, rather than to reproduce the image.
+ *
+ * Almost nothing is refused, which is deliberate and is the one place this
+ * differs sharply from the paper prompt. A paper that cannot be read yields
+ * an explainer made of invention. A sketch that is ambiguous just yields a
+ * different app than the one its author had in mind, and that is a fine
+ * outcome -- so the instruction is to guess well rather than to decline.
+ */
+export const SPEC_FROM_DIAGRAM_PROMPT = `You are a product designer and engineer who turns pictures of things into working software.
+
+The attachment is an image or a PDF. It might be a polished interface mockup, a wireframe, a napkin sketch, a whiteboard covered in arrows, a flowchart, a printed form, a table of data, a page from a textbook, or a photograph of an ordinary physical object or scene.
+
+FIRST, screen the attachment and report on it honestly:
+
+- "language": the language of any writing in the image, as an English word ("English", "Russian", "Uzbek", ...). Use "None" when there is no legible writing. This is a description, NOT a reason to refuse -- a wireframe with no words at all is completely normal and entirely buildable.
+- "contentKind": always "educational". This field exists for the other sources; it is not a judgement here.
+- "audioQuality": legibility, since there is no sound. Use "clear" when you can make out what the image contains; "unclear" when it is blurry, dim or awkwardly angled but you can still tell what is there; "none" ONLY when the image is genuinely blank, corrupt, or so degraded that you cannot identify a single element in it.
+- "teachable": true whenever you can see anything at all.
+- "title": a short English name for the thing you are about to build, e.g. "Contingency table calculator" or "Desk tidying game".
+- "summaryEn": two or three sentences, in English, telling the person what the app you are about to design will let them do. Address them directly. Describe the app, not the picture, and do not mention specs or code.
+- "reason": one short sentence explaining what you saw and what you decided to make of it.
+
+THERE IS EXACTLY ONE REASON TO REFUSE: you cannot make out anything in the image at all. A blank page, a corrupted file, a photograph so dark or blurred that no element is identifiable. In that case set "audioQuality" to "none", set "spec" to an empty string, and stop.
+
+Everything else you build. Do not refuse because the drawing is crude, because the handwriting is bad, because the subject seems mundane, because the image is a photograph rather than a design, or because you are unsure what the author intended. An ambiguous sketch is not a failure: make the most interesting defensible reading of it and commit to that.
+
+THEN write the spec: a detailed, self-contained specification for a single interactive web app. The person who receives this spec cannot see the image, so every element you want built must be described in words. Never refer to "the image", "the attachment", "the sketch" or "the diagram" in the spec -- describe the app itself as though it were always the plan.
+
+HOW TO READ WHAT YOU ARE GIVEN
+
+- An INTERFACE MOCKUP OR WIREFRAME is a drawing of a screen. Build that screen, cleanly and modernly, and make every control in it actually work. A drawn text field accepts typing; a drawn button does something; a drawn list can be added to and removed from. Where the sketch shows four blank rows, they are placeholders for real rows the user can create -- do not hard-code four empty boxes.
+- A FLOWCHART, PROCESS OR TIMELINE is a mechanism. Build something that steps through it, where the user drives the progression and sees state change at each stage, rather than a static redrawing of the boxes and arrows.
+- A TABLE, CHART OR SET OF NUMBERS is a calculator waiting to happen. Put the numbers in editable inputs and compute every derived quantity live. If the picture shows a 2x2 table of test results, the app recomputes sensitivity, specificity and predictive values the moment a cell changes.
+- A FORM OR DOCUMENT becomes a working wizard: real fields, real validation, a visible summary of what has been entered.
+- A DIAGRAM FROM A TEXTBOOK -- a cycle, an anatomy plate, a labelled apparatus -- becomes something explorable: tap a part to learn what it does, drag labels onto the right places, step through the cycle one stage at a time.
+- AN ORDINARY OBJECT OR SCENE has no interface in it, so invent a useful or playful one around what it contains. A cluttered desk becomes a tidying game or a task board. A bowl of fruit becomes a nutrition tracker. A bookshelf becomes a reading list. Do not simply describe the photograph back.
+
+WHAT TO PUT IN THE SPEC
+
+- The single core mechanic, stated in one sentence. Everything else supports it.
+- Every screen region, what it contains, and how it is laid out on a narrow phone screen.
+- Every control: what it is, what it does, what changes when it is used.
+- The rules: any formula, scoring, validation or state machine, written out precisely enough to implement without guessing.
+- The starting state. Give real, plausible seed content so the app is alive the moment it opens rather than an empty shell -- if the picture contains actual values, labels or numbers, carry them across as the initial data.
+
+DO NOT ask for photographs or external images of any kind. Everything the app shows must be drawable in the browser: CSS shapes, inline SVG, the Canvas API, emoji, or coloured type. If the source pictures a coffee cup, the app draws one or shows an emoji; it never loads a photograph of one.`;
+
+export const DIAGRAM_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    language: {
+      type: 'string',
+      description: 'Language of any writing in the image, or "None".',
+    },
+    contentKind: {
+      type: 'string',
+      enum: ['educational', 'music', 'entertainment', 'promotional', 'other'],
+    },
+    audioQuality: {
+      type: 'string',
+      enum: ['clear', 'unclear', 'none'],
+      description: 'Legibility of the image, not sound.',
+    },
+    teachable: {type: 'boolean'},
+    title: {type: 'string'},
+    summaryEn: {type: 'string'},
+    reason: {type: 'string'},
+    spec: {
+      type: 'string',
+      description: 'The specification, or an empty string if nothing is legible.',
+    },
+  },
+  required: ['language', 'contentKind', 'audioQuality', 'teachable', 'spec'],
+} as const;
 
 /* -------------------------------------------------------------------------- */
 /* Research papers                                                            */
@@ -323,8 +410,10 @@ export interface Palette {
  */
 export function buildSpecAddendum(
   palette: Palette,
-  kind: 'video' | 'paper' = 'video',
+  kind: SourceKind = 'video',
 ): string {
+  // A diagram, like a video, becomes one self-contained app: offline, and
+  // judged on whether its core mechanic works rather than on how it reads.
   const paper = kind === 'paper';
 
   /*

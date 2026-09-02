@@ -6,14 +6,19 @@
 import Chooser from '@/components/Chooser';
 import ContentContainer from '@/components/ContentContainer';
 import HistoryList from '@/components/HistoryList';
-import {EmptyIllustration, PaperIllustration} from '@/components/Illustrations';
+import {
+  DiagramIllustration,
+  EmptyIllustration,
+  PaperIllustration,
+} from '@/components/Illustrations';
 import KeyGate from '@/components/KeyGate';
 import {useSettings} from '@/context';
 import {lookupPaper} from '@/lib/paperLookup';
 import {isTooLong} from '@/lib/screening';
 import {
+  DIAGRAM_ACCEPT,
   type LinkHint,
-  MAX_PDF_BYTES,
+  MAX_UPLOAD_BYTES,
   type Source,
   type SourceKind,
   linkHintFor,
@@ -42,6 +47,7 @@ export default function App() {
   const [mode, setMode] = useState<SourceKind | null>(null);
   const [source, setSource] = useState<Source | null>(null);
   const [pdf, setPdf] = useState<{name: string; mimeType: string; base64: string} | null>(null);
+  const [picture, setPicture] = useState<{name: string; mimeType: string; base64: string} | null>(null);
   const [linkHint, setLinkHint] = useState<LinkHint | null>(null);
   const [resolved, setResolved] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -54,6 +60,7 @@ export default function App() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pictureRef = useRef<HTMLInputElement>(null);
 
   const videoUrl = source?.kind === 'video' ? source.url : '';
 
@@ -65,7 +72,11 @@ export default function App() {
     setUrlError(null);
 
     const next =
-      mode === 'video' ? await prepareVideo() : await preparePaper();
+      mode === 'video'
+        ? await prepareVideo()
+        : mode === 'diagram'
+          ? prepareDiagram()
+          : await preparePaper();
     if (!next) return;
 
     start(next);
@@ -137,11 +148,26 @@ export default function App() {
     };
   };
 
+  /**
+   * A picture needs no validation beyond having been picked.
+   *
+   * There is no link to resolve and no length to measure -- the only thing
+   * that could be wrong is the file itself, and reading it already failed
+   * loudly at the point it was chosen.
+   */
+  const prepareDiagram = (): Source | null => {
+    if (!picture) {
+      setUrlError(t.diagramNeedFile);
+      return null;
+    }
+    return {kind: 'diagram', ...picture};
+  };
+
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
     setUrlError(null);
 
-    if (file.size > MAX_PDF_BYTES) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       setPdf(null);
       setUrlError(t.paperTooBig);
       return;
@@ -158,10 +184,31 @@ export default function App() {
     }
   };
 
+  const handlePicture = async (file: File | undefined) => {
+    if (!file) return;
+    setUrlError(null);
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setPicture(null);
+      setUrlError(t.diagramTooBig);
+      return;
+    }
+
+    try {
+      setPicture(await readFileAsBase64(file));
+      haptic();
+    } catch (error) {
+      console.error('Could not read the picture:', error);
+      setUrlError(t.diagramUnreadable);
+    }
+  };
+
   const mainButtonLabel = checkingSource
     ? mode === 'video'
       ? t.checkingVideo
-      : t.checkingPaper
+      : mode === 'diagram'
+        ? t.checkingDiagram
+        : t.checkingPaper
     : contentLoading
       ? t.generating
       : source
@@ -197,6 +244,7 @@ export default function App() {
     setMode(next);
     setSource(null);
     setPdf(null);
+    setPicture(null);
     setUrlError(null);
     setLinkHint(null);
     setResolved(null);
@@ -236,9 +284,11 @@ export default function App() {
     setSource(
       item.kind === 'video'
         ? {kind: 'video', url: item.sourceUrl ?? ''}
-        : item.sourceUrl
-          ? {kind: 'paper', via: 'url', url: item.sourceUrl}
-          : {kind: 'paper', via: 'file', name: item.title, mimeType: 'application/pdf', base64: ''},
+        : item.kind === 'diagram'
+          ? {kind: 'diagram', name: item.title, mimeType: 'image/png', base64: ''}
+          : item.sourceUrl
+            ? {kind: 'paper', via: 'url', url: item.sourceUrl}
+            : {kind: 'paper', via: 'file', name: item.title, mimeType: 'application/pdf', base64: ''},
     );
     setReloadCounter((c) => c + 1);
   };
@@ -276,10 +326,20 @@ export default function App() {
         </span>
         <div className="brand-text">
           <h1 className="title display">{t.appName}</h1>
-          {/* The subtitle follows the mode: a research explainer is not a
-              YouTube lesson, and saying so on both was simply wrong. */}
+          {/*
+            The subtitle follows the mode: a research explainer is not a
+            YouTube lesson, and saying so on both was simply wrong. Before a
+            mode is chosen there is no one source to describe, so it names all
+            three rather than promising whichever happens to be first.
+          */}
           <p className="hint subtitle">
-            {mode === 'paper' ? t.subtitlePaper : t.subtitleVideo}
+            {mode === 'video'
+              ? t.subtitleVideo
+              : mode === 'paper'
+                ? t.subtitlePaper
+                : mode === 'diagram'
+                  ? t.subtitleDiagram
+                  : t.subtitleAll}
           </p>
         </div>
       </div>
@@ -339,43 +399,57 @@ export default function App() {
       {header}
 
       <nav className="mode-switch" role="tablist">
-        {(['video', 'paper'] as const).map((option) => (
+        {(['video', 'paper', 'diagram'] as const).map((option) => (
           <button
             key={option}
             role="tab"
             aria-selected={mode === option}
             className={mode === option ? 'mode-option active' : 'mode-option'}
             onClick={() => switchMode(option)}>
-            {option === 'video' ? t.modeVideo : t.modePaper}
+            {option === 'video'
+              ? t.modeVideo
+              : option === 'paper'
+                ? t.modePaper
+                : t.modeDiagram}
           </button>
         ))}
       </nav>
 
       <section className="controls">
+        {/*
+          A picture has no link form. Showing a URL field for it would offer
+          an input that cannot start a generation.
+        */}
         <label className="field-label" htmlFor="source-url">
-          {mode === 'video' ? t.inputLabel : t.paperLabel}
+          {mode === 'video'
+            ? t.inputLabel
+            : mode === 'paper'
+              ? t.paperLabel
+              : t.diagramLabel}
         </label>
-        <input
-          ref={inputRef}
-          id="source-url"
-          type="url"
-          inputMode="url"
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          placeholder={
-            mode === 'video' ? t.inputPlaceholder : t.paperPlaceholder
-          }
-          disabled={busy}
-          onChange={(e) => {
-            setUrlError(null);
-            setResolved(null);
-            setLinkHint(
-              mode === 'paper' && !pdf ? linkHintFor(e.target.value) : null,
-            );
-          }}
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        />
+        {mode !== 'diagram' && (
+          <input
+            ref={inputRef}
+            id="source-url"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder={
+              mode === 'video' ? t.inputPlaceholder : t.paperPlaceholder
+            }
+            disabled={busy}
+            onChange={(e) => {
+              setUrlError(null);
+              setResolved(null);
+              setLinkHint(
+                mode === 'paper' && !pdf ? linkHintFor(e.target.value) : null,
+              );
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          />
+        )}
 
         {resolved && (
           <p className="field-resolved">
@@ -400,6 +474,24 @@ export default function App() {
               accept="application/pdf,.pdf"
               hidden
               onChange={(e) => handleFile(e.target.files?.[0])}
+            />
+          </div>
+        )}
+
+        {mode === 'diagram' && (
+          <div className="upload-row">
+            <button
+              className="button-secondary upload-button"
+              disabled={busy}
+              onClick={() => pictureRef.current?.click()}>
+              {picture ? `${t.paperChosen}: ${picture.name}` : t.diagramUpload}
+            </button>
+            <input
+              ref={pictureRef}
+              type="file"
+              accept={DIAGRAM_ACCEPT}
+              hidden
+              onChange={(e) => handlePicture(e.target.files?.[0])}
             />
           </div>
         )}
@@ -453,16 +545,27 @@ export default function App() {
           <div className="output-placeholder">
             {mode === 'video' ? (
               <EmptyIllustration className="placeholder-art" />
+            ) : mode === 'diagram' ? (
+              <DiagramIllustration className="placeholder-art" />
             ) : (
               <PaperIllustration className="placeholder-art" />
             )}
             <p className="hint">
-              {mode === 'video' ? t.contentPlaceholder : t.paperPlaceholderText}
+              {mode === 'video'
+                ? t.contentPlaceholder
+                : mode === 'diagram'
+                  ? t.diagramPlaceholderText
+                  : t.paperPlaceholderText}
             </p>
             <ol className="intro-steps">
-              <li>{mode === 'video' ? t.introStep1 : t.paperStep1}</li>
-              <li>{mode === 'video' ? t.introStep2 : t.paperStep2}</li>
-              <li>{mode === 'video' ? t.introStep3 : t.paperStep3}</li>
+              {(mode === 'video'
+                ? [t.introStep1, t.introStep2, t.introStep3]
+                : mode === 'diagram'
+                  ? [t.diagramStep1, t.diagramStep2, t.diagramStep3]
+                  : [t.paperStep1, t.paperStep2, t.paperStep3]
+              ).map((step) => (
+                <li key={step}>{step}</li>
+              ))}
             </ol>
           </div>
         )}

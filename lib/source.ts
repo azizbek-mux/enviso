@@ -3,10 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/** Largest PDF we will inline into a request, before base64 expansion. */
-export const MAX_PDF_BYTES = 12 * 1024 * 1024;
+/** Largest file we will inline into a request, before base64 expansion. */
+export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
-export type SourceKind = 'video' | 'paper';
+/** What a diagram may be: anything Gemini can look at. */
+export const DIAGRAM_ACCEPT = 'image/*,application/pdf,.pdf';
+
+export type SourceKind = 'video' | 'paper' | 'diagram';
 
 /**
  * What a generation is built from.
@@ -25,7 +28,15 @@ export type Source =
       /** The paper's real title, once a lookup has confirmed it. */
       title?: string;
     }
-  | {kind: 'paper'; via: 'file'; name: string; mimeType: string; base64: string};
+  | {kind: 'paper'; via: 'file'; name: string; mimeType: string; base64: string}
+  /**
+   * A picture of something that implies an interface.
+   *
+   * A wireframe, a whiteboard, a flowchart, a form, a screenshot, a page of a
+   * textbook. Unlike the other two there is no link form: the thing itself is
+   * the source, and it only ever arrives as a file.
+   */
+  | {kind: 'diagram'; name: string; mimeType: string; base64: string};
 
 /**
  * The subset of sources that can be described by a link alone.
@@ -40,6 +51,7 @@ export type LinkSource =
 /** Stable identity for a source, used to key the generating component. */
 export function sourceLabel(source: Source): string {
   if (source.kind === 'video') return source.url;
+  if (source.kind === 'diagram') return source.name;
   return source.via === 'url' ? source.url : source.name;
 }
 

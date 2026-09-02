@@ -15,7 +15,9 @@ import {
   stitchSection,
 } from '@/lib/explainerPrompts';
 import {
+  DIAGRAM_RESPONSE_SCHEMA,
   FACTS_FROM_PAPER_PROMPT,
+  SPEC_FROM_DIAGRAM_PROMPT,
   buildSpecAddendum,
   JSON_ONLY_INSTRUCTION,
   PAPER_RESPONSE_SCHEMA,
@@ -146,7 +148,9 @@ export default function ContentContainer({
         };
       }
 
-      if (source.via === 'file') {
+      // A diagram and an uploaded paper are the same request shape: a file
+      // inlined beside the prompt, with structured output asked for directly.
+      if (source.kind === 'diagram' || source.via === 'file') {
         return {
           prompt,
           attachments: [filePart(source.mimeType, source.base64)],
@@ -222,23 +226,34 @@ export default function ContentContainer({
       );
     };
 
-    const video = source.kind === 'video';
+    const paper = source.kind === 'paper';
+
+    const specPrompt =
+      source.kind === 'video'
+        ? SPEC_FROM_VIDEO_PROMPT
+        : source.kind === 'diagram'
+          ? SPEC_FROM_DIAGRAM_PROMPT
+          : SPEC_FROM_PAPER_PROMPT;
+
+    const specSchema =
+      source.kind === 'video'
+        ? SPEC_RESPONSE_SCHEMA
+        : source.kind === 'diagram'
+          ? DIAGRAM_RESPONSE_SCHEMA
+          : PAPER_RESPONSE_SCHEMA;
 
     const [planText, factsText] = await Promise.all([
-      ask(
-        video ? SPEC_FROM_VIDEO_PROMPT : SPEC_FROM_PAPER_PROMPT,
-        video ? SPEC_RESPONSE_SCHEMA : PAPER_RESPONSE_SCHEMA,
-      ),
-      // Only a paper has a data layer to extract. A video app is one
-      // self-contained thing, built in a single pass.
-      video
-        ? Promise.resolve('')
-        : ask(FACTS_FROM_PAPER_PROMPT, null, {
+      ask(specPrompt, specSchema),
+      // Only a paper has a data layer to extract. A video or a diagram
+      // becomes one self-contained app, built in a single pass.
+      paper
+        ? ask(FACTS_FROM_PAPER_PROMPT, null, {
             thinkingConfig: {thinkingLevel: 'LOW' as never},
           }).catch((err) => {
             console.warn('Facts extraction failed:', err);
             return '';
-          }),
+          })
+        : Promise.resolve(''),
     ]);
 
     const screening = parseJSON(planText) as Screening;
@@ -407,7 +422,7 @@ export default function ContentContainer({
     async (baseSpec: string) => {
       if (source.kind === 'paper') return generateSite(baseSpec);
 
-      const prompt = baseSpec + buildSpecAddendum(currentPalette(), 'video');
+      const prompt = baseSpec + buildSpecAddendum(currentPalette(), source.kind);
       return parseHTML(await runOnBestModel(prompt));
     },
     [source.kind, runOnBestModel, generateSite],
@@ -488,7 +503,7 @@ export default function ContentContainer({
     const sourceUrl =
       source.kind === 'video'
         ? source.url
-        : source.via === 'url'
+        : source.kind === 'paper' && source.via === 'url'
           ? source.url
           : undefined;
 
@@ -506,9 +521,11 @@ export default function ContentContainer({
     summary.title?.trim() ||
     (source.kind === 'video'
       ? source.url
-      : source.via === 'url'
-        ? source.url
-        : source.name);
+      : source.kind === 'diagram'
+        ? source.name
+        : source.via === 'url'
+          ? source.url
+          : source.name);
 
   /** Rebuild from the same plan with a nudge -- one call, not two. */
   const handleVariation = async (kind: VariationKind) => {
@@ -654,6 +671,7 @@ ${t.shareFooter} ${home}`
       notEducational: t.rejectNotEducational,
       unreadable: t.rejectUnreadable,
       notResearch: t.rejectNotResearch,
+      illegible: t.rejectIllegible,
     };
     return messages[err.reason].replace('{lang}', err.detail ?? '');
   };
@@ -662,7 +680,11 @@ ${t.shareFooter} ${home}`
     <div className="state-panel">
       <RefusedIllustration className="state-art" />
       <p className="state-title reject-title display">
-        {source.kind === 'paper' ? t.rejectTitlePaper : t.rejectTitle}
+        {source.kind === 'paper'
+          ? t.rejectTitlePaper
+          : source.kind === 'diagram'
+            ? t.rejectTitleDiagram
+            : t.rejectTitle}
       </p>
       <p className="state-detail reject-detail">{rejectionMessage(err)}</p>
 
