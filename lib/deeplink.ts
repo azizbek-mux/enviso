@@ -25,7 +25,7 @@ export function encodeSource(source: Source): string | null {
   const url =
     source.kind === 'video'
       ? source.url
-      : source.via === 'url'
+      : source.kind === 'paper' && source.via === 'url'
         ? source.url
         : null;
   if (!url) return null;
@@ -73,7 +73,7 @@ export function shareLink(source: Source): string | null {
     // No bot registered yet: share the source itself rather than nothing.
     return source.kind === 'video'
       ? source.url
-      : source.via === 'url'
+      : source.kind === 'paper' && source.via === 'url'
         ? source.url
         : null;
   }

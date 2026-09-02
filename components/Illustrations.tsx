@@ -43,6 +43,39 @@ export function EmptyIllustration({className}: {className?: string}) {
   );
 }
 
+/** A sketch becoming an interface: pencil strokes resolving into controls. */
+export function DiagramIllustration({className}: {className?: string}) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 120 80"
+      role="img"
+      aria-hidden="true"
+      width="120"
+      height="80">
+      {/* the drawn side: loose, hand-made boxes */}
+      <rect x="4" y="10" width="48" height="38" rx="3" {...stroke} opacity="0.45" strokeDasharray="4 3" />
+      <path d="M11 20h26" {...stroke} opacity="0.5" />
+      <rect x="11" y="27" width="20" height="8" rx="2" {...stroke} opacity="0.4" />
+      <path d="M11 42h18" {...stroke} opacity="0.3" />
+
+      {/* becoming */}
+      <path d="M56 29h10" {...stroke} opacity="0.45" />
+      <path d="M62 25l5 4-5 4" {...stroke} opacity="0.45" />
+
+      {/* the built side: the same shapes, resolved */}
+      <rect x="72" y="10" width="44" height="38" rx="5" {...stroke} />
+      <path d="M79 20h26" {...stroke} opacity="0.55" />
+      <rect x="79" y="27" width="20" height="8" rx="3" fill="var(--color-brand)" opacity="0.3" stroke="none" />
+      <circle cx="107" cy="31" r="4" fill="var(--color-brand)" opacity="0.85" />
+      <path d="M79 42h18" {...stroke} opacity="0.35" />
+
+      <path d="M12 62h44" {...stroke} opacity="0.3" />
+      <path d="M12 70h26" {...stroke} opacity="0.2" />
+    </svg>
+  );
+}
+
 /** A paper being read: pages with a magnifier. */
 export function PaperIllustration({className}: {className?: string}) {
   return (

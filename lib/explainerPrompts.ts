@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type {SourceKind} from '@/lib/source';
+
 import {HOUSE_STYLE, LESSON_STYLE} from '@/lib/houseStyle';
 import {REFERENCE_SECTION} from '@/lib/referenceExample';
 import {CODE_REGION_CLOSER, CODE_REGION_OPENER} from '@/lib/prompts';
@@ -106,10 +108,10 @@ export interface PlannedSection {
  */
 export function planSections(
   proposed?: PlannedSection[] | null,
-  kind: 'video' | 'paper' = 'paper',
+  kind: SourceKind = 'paper',
 ): PlannedSection[] {
   const fallback: PlannedSection[] =
-    kind === 'video' ? [...LESSON_SECTIONS] : [...EXPLAINER_SECTIONS];
+    kind === 'paper' ? [...EXPLAINER_SECTIONS] : [...LESSON_SECTIONS];
 
   const usable = (proposed ?? []).filter(
     (section) => section?.key && section?.brief,
@@ -151,9 +153,9 @@ export function buildShellPrompt(
   facts: string,
   sections: PlannedSection[],
   identity: string,
-  kind: 'video' | 'paper' = 'paper',
+  kind: SourceKind = 'paper',
 ): string {
-  const lesson = kind === 'video';
+  const lesson = kind !== 'paper';
   const markers = sections
     .map((section) => `    ${sectionMarker(section.key)}`)
     .join(NEWLINE);
@@ -248,9 +250,9 @@ export function buildSectionPrompt(
   spec: string,
   facts: string,
   identity: string,
-  kind: 'video' | 'paper' = 'paper',
+  kind: SourceKind = 'paper',
 ): string {
-  const lesson = kind === 'video';
+  const lesson = kind !== 'paper';
 
   return `You are writing ONE section of ${
     lesson

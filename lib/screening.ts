@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type {SourceKind} from '@/lib/source';
+
 /** Videos longer than this are refused before any Gemini call is made. */
 export const MAX_DURATION_MINUTES = 30;
 
@@ -22,7 +24,8 @@ export type RejectionReason =
   | 'noSpeech'
   | 'notEducational'
   | 'unreadable'
-  | 'notResearch';
+  | 'notResearch'
+  | 'illegible';
 
 /** A video the app declines to work with, as opposed to a failure. */
 export class VideoRejectedError extends Error {
@@ -54,7 +57,7 @@ export interface Screening {
   language: string;
   durationMinutes?: number;
   contentKind: 'educational' | 'music' | 'entertainment' | 'promotional' | 'other';
-  /** For a paper this reports readability rather than sound. */
+  /** For a paper or a diagram this reports legibility rather than sound. */
   audioQuality: 'clear' | 'unclear' | 'none';
   teachable: boolean;
   title?: string;
@@ -99,13 +102,32 @@ function normalise(language: string): string {
  */
 export function assertUsable(
   screening: Screening,
-  kind: 'video' | 'paper' = 'video',
+  kind: SourceKind = 'video',
 ): void {
   const said = screening.reason;
   const {language, durationMinutes, contentKind, audioQuality, teachable} =
     screening;
 
   const paper = kind === 'paper';
+
+  /*
+   * A diagram is judged on one thing: whether anything can be made out.
+   *
+   * The language guard cannot apply -- a napkin sketch has no language, and
+   * "None" is the normal answer for a wireframe rather than grounds to
+   * refuse. Nor can teachability: the whole point is that a photograph of a
+   * cluttered desk becomes a tidying game. If the model could see it, there
+   * is something to build.
+   */
+  if (kind === 'diagram') {
+    if (audioQuality === 'none') {
+      throw new VideoRejectedError('illegible', undefined, said);
+    }
+    if (!screening.spec?.trim()) {
+      throw new VideoRejectedError('illegible', undefined, said);
+    }
+    return;
+  }
 
   // Backstop for the client-side duration check, which returns null for live
   // streams and whenever the iframe player refuses to load.
