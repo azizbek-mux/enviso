@@ -144,6 +144,7 @@ export const strings = {
 
   loadingSpec: 'Watching the video and writing a plan...',
   loadingPaper: 'Reading the publication and writing a plan...',
+  loadingDiagram: 'Reading the picture and working out what to build...',
   loadingCode: 'Building your app from the plan...',
   stillWorking: 'Still working - it may take several minutes',
 

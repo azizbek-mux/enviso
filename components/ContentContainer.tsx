@@ -659,11 +659,13 @@ ${t.shareFooter} ${home}`
     <div className="state-panel">
       <div className="spinner" />
       <p className="state-text">
-        {loadingState === 'loading-spec'
-          ? source.kind === 'video'
+        {loadingState !== 'loading-spec'
+          ? t.loadingCode
+          : source.kind === 'video'
             ? t.loadingSpec
-            : t.loadingPaper
-          : t.loadingCode}
+            : source.kind === 'diagram'
+              ? t.loadingDiagram
+              : t.loadingPaper}
       </p>
       {notice && <p className="state-notice">{notice}</p>}
 
