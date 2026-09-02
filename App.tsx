@@ -280,6 +280,15 @@ export default function App() {
 
   const openFromHistory = (item: HistoryItem) => {
     haptic();
+    /*
+     * Enter the item's own mode as well as restoring it.
+     *
+     * The list is shown on the chooser too, where no mode has been picked
+     * yet -- and that screen renders for as long as the mode is null. So a
+     * past app opened from there set the source, kept rendering the chooser,
+     * and looked like a dead tap. That is the app's commonest entry point.
+     */
+    setMode(item.kind);
     setRestored(item);
     setSource(
       item.kind === 'video'

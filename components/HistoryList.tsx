@@ -66,7 +66,13 @@ export default function HistoryList({
                   {thumb ? (
                     <img src={thumb} alt="" loading="lazy" />
                   ) : (
-                    <span className="history-badge">PDF</span>
+                    <span className="history-badge">
+                      {item.kind === 'diagram'
+                        ? 'IMG'
+                        : item.kind === 'video'
+                          ? 'VIDEO'
+                          : 'PDF'}
+                    </span>
                   )}
                 </span>
                 <span className="history-body">
