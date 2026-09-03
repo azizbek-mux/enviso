@@ -19,8 +19,11 @@ import {
   DIAGRAM_ACCEPT,
   type LinkHint,
   MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_MB,
   type Source,
   type SourceKind,
+  isPdfFile,
+  isPictureFile,
   linkHintFor,
   looksLikeUrl,
   readFileAsBase64,
@@ -167,6 +170,14 @@ export default function App() {
     if (!file) return;
     setUrlError(null);
 
+    // The accept attribute only filters the picker; "All files" walks past
+    // it, and a drag-and-drop never saw it at all.
+    if (!isPdfFile(file)) {
+      setPdf(null);
+      setUrlError(t.paperWrongType);
+      return;
+    }
+
     if (file.size > MAX_UPLOAD_BYTES) {
       setPdf(null);
       setUrlError(t.paperTooBig);
@@ -187,6 +198,12 @@ export default function App() {
   const handlePicture = async (file: File | undefined) => {
     if (!file) return;
     setUrlError(null);
+
+    if (!isPictureFile(file)) {
+      setPicture(null);
+      setUrlError(t.diagramWrongType);
+      return;
+    }
 
     if (file.size > MAX_UPLOAD_BYTES) {
       setPicture(null);
@@ -484,6 +501,9 @@ export default function App() {
               hidden
               onChange={(e) => handleFile(e.target.files?.[0])}
             />
+            <span className="hint upload-limits">
+              {t.paperLimits.replace('{size}', String(MAX_UPLOAD_MB))}
+            </span>
           </div>
         )}
 
@@ -502,6 +522,9 @@ export default function App() {
               hidden
               onChange={(e) => handlePicture(e.target.files?.[0])}
             />
+            <span className="hint upload-limits">
+              {t.diagramLimits.replace('{size}', String(MAX_UPLOAD_MB))}
+            </span>
           </div>
         )}
 
@@ -708,9 +731,17 @@ function Styles() {
         gap: 0.5rem;
       }
 
+      .upload-limits {
+        /* Its own line: as a flex sibling it competed with the button for
+           width, and the button ellipsised itself down to "Ch". */
+        flex: 0 0 100%;
+        font-size: 0.78rem;
+      }
+
       .upload-row {
         align-items: center;
         display: flex;
+        flex-wrap: wrap;
         gap: 0.6rem;
       }
 

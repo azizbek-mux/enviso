@@ -6,8 +6,35 @@
 /** Largest file we will inline into a request, before base64 expansion. */
 export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
+/** The cap in whole megabytes, for anything that has to say it out loud. */
+export const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
+
 /** What a diagram may be: anything Gemini can look at. */
 export const DIAGRAM_ACCEPT = 'image/*,application/pdf,.pdf';
+
+/**
+ * Extensions we accept when the browser reports no type at all.
+ *
+ * A file picked from an unusual source, or with an extension Windows does
+ * not recognise, arrives with an empty `type`. Judging on that alone would
+ * refuse a perfectly good photograph for a reason the person cannot see or
+ * fix, so the name gets the second word.
+ */
+const PICTURE_EXTENSION = /\.(png|jpe?g|jfif|webp|gif|bmp|heic|heif|avif|svg|tiff?|pdf)$/i;
+
+/** True for a file that can be handed to Gemini as a picture. */
+export function isPictureFile(file: File): boolean {
+  if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+    return true;
+  }
+  return file.type === '' && PICTURE_EXTENSION.test(file.name);
+}
+
+/** True for a file that can be handed to Gemini as a paper. */
+export function isPdfFile(file: File): boolean {
+  if (file.type === 'application/pdf') return true;
+  return file.type === '' && /\.pdf$/i.test(file.name);
+}
 
 export type SourceKind = 'video' | 'paper' | 'diagram';
 

@@ -76,6 +76,9 @@ export const strings = {
   paperPlaceholder: 'https://doi.org/... or arxiv.org/...',
   paperOr: 'or',
   paperUpload: 'Choose a PDF',
+  /** {size} is filled from the real cap, so the two can never drift apart. */
+  paperLimits: 'PDF only, up to {size} MB',
+  paperWrongType: 'That needs to be a PDF',
   paperChosen: 'Selected',
   paperTooBig: 'That PDF is too large. The limit is 12 MB.',
   paperNeedInput: 'Add a link or choose a PDF first',
@@ -97,6 +100,8 @@ export const strings = {
   diagramNeedFile: 'Choose an image or a PDF first',
   diagramTooBig: 'That file is too large. The limit is 12 MB.',
   diagramUnreadable: 'That file could not be read. Try another.',
+  diagramLimits: 'PNG, JPG, WEBP or PDF, up to {size} MB',
+  diagramWrongType: 'That needs to be an image or a PDF',
   diagramPlaceholderText: 'Your app will appear here',
   diagramStep1: 'Upload a sketch, screenshot, diagram or photo',
   diagramStep2: 'Gemini works out what it implies and designs an app',
