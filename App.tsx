@@ -421,7 +421,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app app-main">
       {header}
 
       <nav className="mode-switch" role="tablist">
@@ -891,7 +891,14 @@ function Styles() {
        * drops whichever item was added last into the wrong column.
        */
       @media (min-width: 1024px) {
-        .app {
+        /*
+         * The grid belongs to the main screen alone.
+         *
+         * The key gate and the chooser do not contain the elements these areas
+         * name, and applying it to them put the chooser on the same row as the
+         * header -- so the two rendered on top of each other.
+         */
+        .app-main {
           align-items: start;
           display: grid;
           gap: 1.25rem 1.75rem;
@@ -907,29 +914,29 @@ function Styles() {
           min-height: var(--tg-viewport-height, 100dvh);
         }
 
-        .header {
+        .app-main .header {
           grid-area: brand;
         }
 
-        .mode-switch {
+        .app-main .mode-switch {
           grid-area: modes;
         }
 
-        .controls {
+        .app-main .controls {
           grid-area: form;
         }
 
-        .video {
+        .app-main .video {
           grid-area: media;
         }
 
-        .history {
+        .app-main .history {
           align-self: start;
           grid-area: past;
           overflow-y: auto;
         }
 
-        .output {
+        .app-main .output {
           grid-area: output;
           height: 100%;
           min-height: min(
@@ -940,14 +947,15 @@ function Styles() {
           top: 1.5rem;
         }
 
-        .chooser {
-          grid-area: brand / brand / past / output;
+        /* Single-column screens get room without becoming a rail. */
+        .app:not(.app-main) {
+          max-width: 900px;
         }
       }
 
       /* Wide desktop: more room for the result, not for the rail. */
       @media (min-width: 1440px) {
-        .app {
+        .app-main {
           grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
           max-width: 1560px;
         }
