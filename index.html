@@ -5,7 +5,10 @@
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#ffffff" />
+    <!-- Browser and installed-window chrome, matched to the app's own
+         surfaces rather than left white. -->
+    <meta name="theme-color" content="#6d5ce7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="Turn a video, a research paper or a picture of something into an interactive app." />
     <title>Enviso</title>
     <link rel="manifest" href="./manifest.webmanifest" />
