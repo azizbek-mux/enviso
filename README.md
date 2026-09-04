@@ -224,11 +224,13 @@ npm run typecheck
 
 ## Deploy free, in three steps
 
-**1. Push to GitHub.** Create a repo and push this folder.
+**1. Push to GitHub.** The repo lives at `enviso-app/enviso-app.github.io`. A
+repo named after the organisation is served from the root, which is why the URL
+carries no path and no personal username.
 
 **2. Turn on Pages.** Repo → Settings → Pages → Source: **GitHub Actions**. The
 workflow in `.github/workflows/deploy.yml` builds and publishes on every push to
-`main`. Your app lands at `https://<user>.github.io/<repo>/`.
+`main`. Your app lands at `https://enviso-app.github.io/`.
 
 **3. Register the Mini App with BotFather.**
 
