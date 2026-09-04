@@ -79,3 +79,22 @@ root.render(
     <App />
   </Providers>,
 );
+
+/*
+ * Register the service worker, which is what makes the app installable in a
+ * browser and lets its shell open without a connection.
+ *
+ * Production only: in dev it would sit in front of Vite's module graph and
+ * serve a stale build back during hot reload.
+ */
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Resolved against BASE_URL, not import.meta.url: the latter points at
+    // the hashed bundle inside /assets/, so the worker would be looked for
+    // beside it and 404 -- and its scope would be /assets/ rather than the app.
+    const base = import.meta.env.BASE_URL;
+    navigator.serviceWorker
+      .register(`${base}sw.js`, {scope: base})
+      .catch((error) => console.warn('Service worker did not register:', error));
+  });
+}

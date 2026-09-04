@@ -6,7 +6,7 @@
 import Diagnostics from '@/components/Diagnostics';
 import {KeyIllustration} from '@/components/Illustrations';
 import {useSettings} from '@/context';
-import {haptic, notify, openExternal} from '@/lib/telegram';
+import {haptic, isTelegram, notify, openExternal} from '@/lib/telegram';
 import {validateApiKey} from '@/lib/textGeneration';
 import {useState} from 'react';
 
@@ -133,7 +133,9 @@ export default function KeyGate({onClose, onSaved, pending}: KeyGateProps) {
           {checking ? t.keyChecking : t.keySave}
         </button>
 
-        <p className="hint key-privacy">{t.keyStored}</p>
+        <p className="hint key-privacy">
+          {isTelegram ? t.keyStored : t.keyStoredBrowser}
+        </p>
 
         {apiKey && (
           <div className="key-existing">

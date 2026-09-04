@@ -189,6 +189,9 @@ export const strings = {
   keyBad: 'That key was rejected. Check it and try again.',
   keyStored:
     'Your key is stored in your own Telegram cloud storage and is never sent anywhere except Google.',
+  /* Outside Telegram there is no cloud to put it in: it stays in this browser. */
+  keyStoredBrowser:
+    'Your key is stored in this browser only and is never sent anywhere except Google.',
   diagTitle: 'Check what your key can do',
   diagIntro:
     'Runs a few tiny test requests and shows exactly which models work, which are busy, and whether video input is allowed.',
