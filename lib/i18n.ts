@@ -34,6 +34,13 @@ export const strings = {
   checkingVideo: 'Checking the video...',
   checkingPaper: 'Finding the full text...',
 
+  reqTitle: 'What works here',
+  reqDuration: 'Under 30 minutes — 3 to 15 works best',
+  reqLanguage: 'Spoken in English',
+  reqSpeech: 'Someone explaining something, not music or ambient sound',
+  reqPaperAccess: 'Open access, or upload the PDF',
+  reqPaperLanguage: 'Written in English',
+
   rejectTitle: 'This video will not work',
   rejectWhy: 'It said:',
   generateAnyway: 'Build it anyway',
@@ -42,7 +49,7 @@ export const strings = {
   rejectTooLong:
     'The video is longer than 30 minutes. Please pick a shorter one - 3 to 15 minutes works best.',
   rejectLanguage:
-    'Only English and Russian videos are supported for now. This one sounds like {lang}.',
+    'Only English is supported. This one sounds like {lang}.',
   rejectMusic:
     'This is a music video. Pick one where someone explains or teaches something.',
   rejectNoSpeech:

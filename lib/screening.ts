@@ -11,11 +11,12 @@ export const MAX_DURATION_MINUTES = 30;
 /**
  * Spoken languages the app accepts.
  *
- * Deliberately narrow. Gemini understands Uzbek far less reliably than English
- * or Russian, and a plan built on a misheard lecture produces a confident,
- * wrong learning app -- worse for a student than being told no.
+ * English only. Comprehension falls away outside it, and a plan built on a
+ * misheard lecture produces a confident, wrong app -- worse for a student
+ * than being told no. The app itself is English throughout, so this is one
+ * rule rather than two.
  */
-export const ALLOWED_LANGUAGES = ['english', 'russian'];
+export const ALLOWED_LANGUAGES = ['english'];
 
 export type RejectionReason =
   | 'tooLong'

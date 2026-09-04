@@ -80,7 +80,7 @@ generation must write, and ties every layout decision to whichever language
 runs longer.
 
 Source language is a separate matter and still guarded: a video or paper that
-is not in English or Russian is refused, because a plan built on a misheard
+is not in English is refused, because a plan built on a misheard
 lecture teaches something wrong.
 
 ## The house style, and where it came from
@@ -159,7 +159,7 @@ recording rather than judgements about its worth:
 |---|---|
 | A music video | the point of it is a song |
 | Nobody speaks | rain, birdsong, ambience — no words to build from |
-| Not English or Russian | a lesson built on a misheard one teaches something wrong |
+| Not English | a lesson built on a misheard one teaches something wrong |
 
 Anything else is built — documentaries, essays, vlogs with a point, noisy
 audio. Whether a subject was "teachable" used to be judged too, and it was

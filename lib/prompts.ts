@@ -22,7 +22,7 @@ THERE ARE ONLY THREE REASONS TO REFUSE, and they are all facts about the recordi
 
 1. It is a music video -- the point of it is a song or a performance.
 2. Nobody speaks. Rain, birdsong, ambience, a silent timelapse: there are no words to build a lesson from.
-3. The speech is in a language other than English or Russian.
+3. The speech is in a language other than English.
 
 Anything else, build. Do not refuse because the subject seems too broad, too soft, too obvious, too entertaining, or because you cannot immediately picture the app. Finding the mechanic is your job, and the three examples below show how differently it can look. If a video has a person making a point, there is an app in it.
 

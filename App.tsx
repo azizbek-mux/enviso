@@ -530,6 +530,23 @@ export default function App() {
 
         {urlError && <p className="field-error">{urlError}</p>}
 
+        {/* Stated before anything is spent. These are the only three things
+            that get a source turned away, so saying them costs a moment and
+            saves a wasted generation. */}
+        {!source && (
+          <div className="requirements">
+            <p className="requirements-title">{t.reqTitle}</p>
+            <ul className="requirements-list">
+              {(mode === 'video'
+                ? [t.reqDuration, t.reqLanguage, t.reqSpeech]
+                : [t.reqPaperAccess, t.reqPaperLanguage]
+              ).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {!isTelegram && (
           <button
             className="button-primary generate"
@@ -762,6 +779,46 @@ function Styles() {
       .field-error {
         color: var(--color-error);
         font-size: 0.85rem;
+      }
+
+      .requirements {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.75rem 0.85rem;
+      }
+
+      .requirements-title {
+        color: var(--color-hint);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .requirements-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .requirements-list li {
+        color: var(--color-hint);
+        display: flex;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        line-height: 1.45;
+      }
+
+      /* A tick rather than a bullet: these are conditions that are met, not
+         items in a list. */
+      .requirements-list li::before {
+        color: var(--color-brand);
+        content: '¹3';
+        flex: 0 0 auto;
+        font-weight: 700;
       }
 
       .field-resolved {
